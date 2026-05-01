@@ -14,9 +14,9 @@ class MBS_Bookings {
 
     public static function get_default_spaces() {
         return array(
-            'Main Scout Hall' => array( 'rate' => 25, 'unit' => 'hr',  'capacity' => 80 ),
-            'Meeting Room'    => array( 'rate' => 12, 'unit' => 'hr',  'capacity' => 20 ),
-            'Outdoor Area'    => array( 'rate' => 40, 'unit' => 'day', 'capacity' => 100 ),
+            'Main Scout Hall' => array( 'rate_hourly' => 25, 'rate_daily' => 150, 'capacity' => 80 ),
+            'Meeting Room'    => array( 'rate_hourly' => 12, 'rate_daily' => 70,  'capacity' => 20 ),
+            'Outdoor Area'    => array( 'rate_hourly' => 10, 'rate_daily' => 40,  'capacity' => 100 ),
         );
     }
 
@@ -41,20 +41,22 @@ class MBS_Bookings {
         );
     }
 
-    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false ) {
+    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false, $all_day = false, $num_days = 1 ) {
         $spaces = self::get_spaces();
         if ( ! isset( $spaces[ $space ] ) ) return 0;
 
         $info = $spaces[ $space ];
         $cost = 0;
 
-        if ( $info['unit'] === 'day' ) {
-            $cost = (float) $info['rate'];
+        if ( $all_day ) {
+            $rate_daily = isset( $info['rate_daily'] ) ? (float) $info['rate_daily'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
+            $cost = $rate_daily * max( 1, $num_days );
         } elseif ( $start_time && $end_time ) {
+            $rate_hourly = isset( $info['rate_hourly'] ) ? (float) $info['rate_hourly'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
             $start = strtotime( $start_time );
             $end   = strtotime( $end_time );
             $hours = ceil( max( 0, ( $end - $start ) / 3600 ) );
-            $cost  = $hours * (float) $info['rate'];
+            $cost  = $hours * $rate_hourly;
         }
 
         if ( $kitchen ) $cost += self::get_kitchen_price();
@@ -75,32 +77,41 @@ class MBS_Bookings {
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
 
-        $ref  = self::generate_ref();
+        $ref     = self::generate_ref();
+        $all_day = ! empty( $data['all_day'] );
+        $date_from = sanitize_text_field( $data['booking_date'] );
+        $date_to   = sanitize_text_field( $data['booking_date_end'] ?? $data['booking_date'] );
+        $num_days  = max( 1, (int) round( ( strtotime( $date_to ) - strtotime( $date_from ) ) / 86400 ) + 1 );
+
         $cost = self::calculate_cost(
             sanitize_text_field( $data['space'] ),
             sanitize_text_field( $data['start_time'] ?? '' ),
             sanitize_text_field( $data['end_time'] ?? '' ),
-            ! empty( $data['kitchen'] )
+            ! empty( $data['kitchen'] ),
+            $all_day,
+            $num_days
         );
 
         $insert = array(
-            'ref'            => $ref,
-            'status'         => 'pending',
-            'name'           => sanitize_text_field( $data['name'] ),
-            'organisation'   => sanitize_text_field( $data['organisation'] ?? '' ),
-            'email'          => sanitize_email( $data['email'] ),
-            'phone'          => sanitize_text_field( $data['phone'] ),
-            'address'        => sanitize_textarea_field( $data['address'] ),
-            'space'          => sanitize_text_field( $data['space'] ),
-            'kitchen'        => ! empty( $data['kitchen'] ) ? 1 : 0,
-            'booking_date'   => sanitize_text_field( $data['booking_date'] ),
-            'start_time'     => ! empty( $data['start_time'] ) ? sanitize_text_field( $data['start_time'] ) : null,
-            'end_time'       => ! empty( $data['end_time'] )   ? sanitize_text_field( $data['end_time'] )   : null,
-            'attendees'      => absint( $data['attendees'] ),
-            'purpose'        => sanitize_text_field( $data['purpose'] ),
-            'notes'          => sanitize_textarea_field( $data['notes'] ?? '' ),
-            'amount'         => $cost,
-            'invoice_number' => 'INV-' . $ref,
+            'ref'              => $ref,
+            'status'           => 'pending',
+            'name'             => sanitize_text_field( $data['name'] ),
+            'organisation'     => sanitize_text_field( $data['organisation'] ?? '' ),
+            'email'            => sanitize_email( $data['email'] ),
+            'phone'            => sanitize_text_field( $data['phone'] ),
+            'address'          => sanitize_textarea_field( $data['address'] ),
+            'space'            => sanitize_text_field( $data['space'] ),
+            'kitchen'          => ! empty( $data['kitchen'] ) ? 1 : 0,
+            'booking_date'     => $date_from,
+            'booking_date_end' => $date_to,
+            'all_day'          => $all_day ? 1 : 0,
+            'start_time'       => ! empty( $data['start_time'] ) ? sanitize_text_field( $data['start_time'] ) : null,
+            'end_time'         => ! empty( $data['end_time'] )   ? sanitize_text_field( $data['end_time'] )   : null,
+            'attendees'        => absint( $data['attendees'] ),
+            'purpose'          => sanitize_text_field( $data['purpose'] ),
+            'notes'            => sanitize_textarea_field( $data['notes'] ?? '' ),
+            'amount'           => $cost,
+            'invoice_number'   => 'INV-' . $ref,
         );
 
         $result = $wpdb->insert( $table, $insert );

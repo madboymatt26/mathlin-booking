@@ -187,20 +187,33 @@ jQuery(function ($) {
         var start   = $('#nms-start').val();
         var end     = $('#nms-end').val();
         var kitchen = $('#nms-kitchen').val() === '1';
+        var allDay  = $('#nms-allday').val() === '1';
         var info    = NMS.spaces[space];
 
         var spaceCost  = 0;
         var spaceLabel = 'Space hire';
 
+        // Calculate number of days
+        var dateFrom = $('#nms-date').val();
+        var dateTo   = $('#nms-date-end').val() || dateFrom;
+        var numDays  = 1;
+        if (dateFrom && dateTo) {
+            var diff = (new Date(dateTo + 'T00:00:00') - new Date(dateFrom + 'T00:00:00')) / 86400000;
+            numDays = Math.max(1, Math.round(diff) + 1);
+        }
+
         if (info) {
-            if (info.unit === 'day') {
-                spaceCost  = info.rate;
-                spaceLabel = space + ' (full day)';
+            var rateHourly = parseFloat(info.rate_hourly || info.rate || 0);
+            var rateDaily  = parseFloat(info.rate_daily || 0);
+
+            if (allDay) {
+                spaceCost  = rateDaily * numDays;
+                spaceLabel = space + ' (' + numDays + ' day' + (numDays !== 1 ? 's' : '') + ' × £' + rateDaily.toFixed(0) + ')';
             } else if (start && end) {
                 var mins = timeToMins(end) - timeToMins(start);
                 var hrs  = Math.ceil(Math.max(0, mins / 60));
-                spaceCost  = hrs * info.rate;
-                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + info.rate + ')' : '');
+                spaceCost  = hrs * rateHourly;
+                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + ')' : '');
             }
         }
 
@@ -214,13 +227,25 @@ jQuery(function ($) {
         }
         $('#nms-cost-total').text('£' + total2dp(total));
 
-        // Toggle time fields
-        var isDay = info && info.unit === 'day';
-        $('#nms-time-row').css({ opacity: isDay ? 0.4 : 1, pointerEvents: isDay ? 'none' : 'auto' });
-        $('#nms-start, #nms-end').prop('required', !isDay);
+        // Toggle time fields based on all-day selection
+        var hideTime = allDay;
+        $('#nms-time-row').css({ opacity: hideTime ? 0.4 : 1, pointerEvents: hideTime ? 'none' : 'auto' });
+        $('#nms-start, #nms-end').prop('required', !hideTime);
     }
 
-    $('#nms-space, #nms-start, #nms-end, #nms-kitchen').on('change', updateCost);
+    $('#nms-space, #nms-start, #nms-end, #nms-kitchen, #nms-allday, #nms-date, #nms-date-end').on('change', updateCost);
+
+    // Sync end date min with start date
+    $('#nms-date').on('change', function() {
+        var val = $(this).val();
+        if (val) {
+            $('#nms-date-end').attr('min', val);
+            if ($('#nms-date-end').val() && $('#nms-date-end').val() < val) {
+                $('#nms-date-end').val(val);
+            }
+        }
+        updateCost();
+    });
 
     // ── Booking form submit ────────────────────────────────────────────────────
     $('#nms-booking-form').on('submit', function (e) {

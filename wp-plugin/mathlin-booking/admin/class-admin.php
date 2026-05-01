@@ -235,14 +235,14 @@ class MBS_Admin {
                 $name = sanitize_text_field( $space_data['name'] ?? '' );
                 if ( empty( $name ) ) continue;
 
-                $rate     = floatval( $space_data['rate'] ?? 0 );
-                $unit     = in_array( $space_data['unit'] ?? 'hr', array( 'hr', 'day' ) ) ? $space_data['unit'] : 'hr';
-                $capacity = absint( $space_data['capacity'] ?? 0 );
+                $rate_hourly = floatval( $space_data['rate_hourly'] ?? 0 );
+                $rate_daily  = floatval( $space_data['rate_daily'] ?? 0 );
+                $capacity    = absint( $space_data['capacity'] ?? 0 );
 
                 $spaces[ $name ] = array(
-                    'rate'     => max( 0, $rate ),
-                    'unit'     => $unit,
-                    'capacity' => $capacity > 0 ? $capacity : null,
+                    'rate_hourly' => max( 0, $rate_hourly ),
+                    'rate_daily'  => max( 0, $rate_daily ),
+                    'capacity'    => $capacity > 0 ? $capacity : null,
                 );
             }
             if ( ! empty( $spaces ) ) {

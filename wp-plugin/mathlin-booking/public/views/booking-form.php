@@ -54,10 +54,12 @@
                             <?php
                             $spaces = MBS_Bookings::get_spaces();
                             foreach ( $spaces as $name => $info ) :
-                                $price_label = '£' . number_format( $info['rate'], 0 ) . '/' . $info['unit'];
+                                $hourly = isset( $info['rate_hourly'] ) ? $info['rate_hourly'] : ( $info['rate'] ?? 0 );
+                                $daily  = isset( $info['rate_daily'] ) ? $info['rate_daily'] : 0;
+                                $price_label = '£' . number_format( $hourly, 0 ) . '/hr or £' . number_format( $daily, 0 ) . '/day';
                                 $cap_label   = ! empty( $info['capacity'] ) ? ', up to ' . $info['capacity'] . ' people' : '';
                             ?>
-                            <option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $name ); ?> (<?php echo esc_html( $price_label . $cap_label ); ?>)</option>
+                            <option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $name . ' (' . $price_label . $cap_label . ')' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -71,7 +73,7 @@
                 </div>
                 <div class="nms-form-row">
                     <div class="nms-form-group">
-                        <label for="nms-date">Date <span class="nms-req">*</span></label>
+                        <label for="nms-date">Start Date <span class="nms-req">*</span></label>
                         <input type="date" id="nms-date" name="booking_date" required
                                min="<?php
                                    $notice = (int) get_option( 'mbs_min_notice_days', 1 );
@@ -80,8 +82,23 @@
                         <p class="nms-field-hint" id="nms-date-hint"></p>
                     </div>
                     <div class="nms-form-group">
+                        <label for="nms-date-end">End Date</label>
+                        <input type="date" id="nms-date-end" name="booking_date_end"
+                               min="<?php echo esc_attr( date( 'Y-m-d', strtotime( "+{$notice} days" ) ) ); ?>">
+                        <p class="nms-field-hint">Leave blank for a single day booking</p>
+                    </div>
+                </div>
+                <div class="nms-form-row">
+                    <div class="nms-form-group">
                         <label for="nms-attendees">Expected Attendees <span class="nms-req">*</span></label>
                         <input type="number" id="nms-attendees" name="attendees" min="1" max="100" placeholder="e.g. 30" required>
+                    </div>
+                    <div class="nms-form-group">
+                        <label for="nms-allday">Booking Type</label>
+                        <select id="nms-allday" name="all_day">
+                            <option value="0">Specific hours</option>
+                            <option value="1">Full day(s)</option>
+                        </select>
                     </div>
                 </div>
                 <div class="nms-form-row" id="nms-time-row">

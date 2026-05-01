@@ -168,12 +168,12 @@ jQuery(function ($) {
         // Collect spaces data
         var spaces = [];
         $('#nms-spaces-tbody .nms-space-row').each(function () {
-            var name     = $(this).find('.nms-space-name').val().trim();
-            var rate     = $(this).find('.nms-space-rate').val();
-            var unit     = $(this).find('.nms-space-unit').val();
-            var capacity = $(this).find('.nms-space-capacity').val();
+            var name        = $(this).find('.nms-space-name').val().trim();
+            var rateHourly  = $(this).find('.nms-space-rate-hourly').val();
+            var rateDaily   = $(this).find('.nms-space-rate-daily').val();
+            var capacity    = $(this).find('.nms-space-capacity').val();
             if (name) {
-                spaces.push({ name: name, rate: rate, unit: unit, capacity: capacity });
+                spaces.push({ name: name, rate_hourly: rateHourly, rate_daily: rateDaily, capacity: capacity });
             }
         });
 
@@ -208,8 +208,8 @@ jQuery(function ($) {
     $('#nms-add-space').on('click', function () {
         var row = '<tr class="nms-space-row">' +
             '<td><input type="text" class="nms-space-name regular-text" value="" placeholder="e.g. Activity Room"></td>' +
-            '<td><input type="number" class="nms-space-rate" value="0" min="0" step="0.01" style="width:80px"></td>' +
-            '<td><select class="nms-space-unit"><option value="hr">per hour</option><option value="day">per day</option></select></td>' +
+            '<td><input type="number" class="nms-space-rate-hourly" value="0" min="0" step="0.01" style="width:80px"></td>' +
+            '<td><input type="number" class="nms-space-rate-daily" value="0" min="0" step="0.01" style="width:80px"></td>' +
             '<td><input type="number" class="nms-space-capacity" value="" min="1" style="width:70px" placeholder="—"></td>' +
             '<td><button type="button" class="button nms-remove-space" title="Remove space">&times;</button></td>' +
             '</tr>';

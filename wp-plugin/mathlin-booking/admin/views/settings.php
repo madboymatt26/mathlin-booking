@@ -18,8 +18,8 @@
                 <thead>
                     <tr>
                         <th>Space Name</th>
-                        <th>Rate (£)</th>
-                        <th>Unit</th>
+                        <th>Hourly Rate (£)</th>
+                        <th>Day Rate (£)</th>
                         <th>Capacity</th>
                         <th></th>
                     </tr>
@@ -28,13 +28,8 @@
                     <?php foreach ( $spaces as $name => $info ) : ?>
                     <tr class="nms-space-row">
                         <td><input type="text" class="nms-space-name regular-text" value="<?php echo esc_attr( $name ); ?>" placeholder="e.g. Main Hall"></td>
-                        <td><input type="number" class="nms-space-rate" value="<?php echo esc_attr( $info['rate'] ); ?>" min="0" step="0.01" style="width:80px"></td>
-                        <td>
-                            <select class="nms-space-unit">
-                                <option value="hr" <?php selected( $info['unit'], 'hr' ); ?>>per hour</option>
-                                <option value="day" <?php selected( $info['unit'], 'day' ); ?>>per day</option>
-                            </select>
-                        </td>
+                        <td><input type="number" class="nms-space-rate-hourly" value="<?php echo esc_attr( $info['rate_hourly'] ?? $info['rate'] ?? 0 ); ?>" min="0" step="0.01" style="width:80px"></td>
+                        <td><input type="number" class="nms-space-rate-daily" value="<?php echo esc_attr( $info['rate_daily'] ?? 0 ); ?>" min="0" step="0.01" style="width:80px"></td>
                         <td><input type="number" class="nms-space-capacity" value="<?php echo esc_attr( $info['capacity'] ?? '' ); ?>" min="1" style="width:70px" placeholder="—"></td>
                         <td><button type="button" class="button nms-remove-space" title="Remove space">&times;</button></td>
                     </tr>

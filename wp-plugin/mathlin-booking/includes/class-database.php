@@ -21,6 +21,8 @@ class MBS_Database {
             space           VARCHAR(60)  NOT NULL,
             kitchen         TINYINT(1)   NOT NULL DEFAULT 0,
             booking_date    DATE         NOT NULL,
+            booking_date_end DATE         DEFAULT NULL,
+            all_day         TINYINT(1)   NOT NULL DEFAULT 0,
             start_time      TIME         DEFAULT NULL,
             end_time        TIME         DEFAULT NULL,
             attendees       SMALLINT     NOT NULL DEFAULT 1,
@@ -54,21 +56,20 @@ class MBS_Database {
         ) {$charset};";
         dbDelta( $sql2 );
 
-        // Migrate ENUM to VARCHAR if needed (for existing installs)
-        self::maybe_migrate_status_column();
+        // Run migrations for existing installs
+        self::maybe_run_migrations();
 
         update_option( 'mbs_db_version', MBS_VERSION );
     }
 
     /**
-     * Migrate the status column from ENUM to VARCHAR if it's still an ENUM.
-     * This allows new statuses (paid, archived) to be stored.
+     * Run database migrations for existing installs.
      */
-    private static function maybe_migrate_status_column() {
+    private static function maybe_run_migrations() {
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
 
-        // Check if the column is still ENUM
+        // Migrate ENUM status column to VARCHAR if needed
         $col_info = $wpdb->get_row( "SHOW COLUMNS FROM {$table} WHERE Field = 'status'" );
         if ( $col_info && strpos( strtolower( $col_info->Type ), 'enum' ) !== false ) {
             $wpdb->query( "ALTER TABLE {$table} MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'" );
@@ -76,6 +77,18 @@ class MBS_Database {
 
         // Fix any bookings with empty status (from failed ENUM writes)
         $wpdb->query( "UPDATE {$table} SET status = 'pending' WHERE status = '' OR status IS NULL" );
+
+        // Add booking_date_end column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'booking_date_end'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN booking_date_end DATE DEFAULT NULL AFTER booking_date" );
+        }
+
+        // Add all_day column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'all_day'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN all_day TINYINT(1) NOT NULL DEFAULT 0 AFTER booking_date_end" );
+        }
     }
 
     public static function on_deactivate() {

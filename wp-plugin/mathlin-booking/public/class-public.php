@@ -93,23 +93,37 @@ class MBS_Public {
             wp_send_json_error( array( 'message' => 'Invalid space selected.' ) );
         }
 
-        // Check if date/space is blocked
-        $blocked = MBS_Blocked_Dates::is_blocked( $date, $space );
-        if ( $blocked ) {
-            $reason_msg = $blocked->reason ? ' Reason: ' . $blocked->reason : '';
-            wp_send_json_error( array( 'message' => 'Sorry, this date is unavailable for booking.' . $reason_msg ) );
-        }
-
-        // Validate times for hourly spaces
-        if ( $spaces[ $space ]['unit'] === 'hr' ) {
+        // Validate times for hourly bookings (not all-day)
+        $all_day = ! empty( $_POST['all_day'] );
+        if ( ! $all_day ) {
             $start = sanitize_text_field( $_POST['start_time'] ?? '' );
             $end   = sanitize_text_field( $_POST['end_time'] ?? '' );
             if ( ! $start || ! $end ) {
-                wp_send_json_error( array( 'message' => 'Please enter start and end times.' ) );
+                wp_send_json_error( array( 'message' => 'Please enter start and end times for hourly bookings.' ) );
             }
             if ( strtotime( $end ) <= strtotime( $start ) ) {
                 wp_send_json_error( array( 'message' => 'End time must be after start time.' ) );
             }
+        }
+
+        // Validate end date if multi-day
+        $date_end = sanitize_text_field( $_POST['booking_date_end'] ?? '' );
+        if ( $date_end && strtotime( $date_end ) < strtotime( $date ) ) {
+            wp_send_json_error( array( 'message' => 'End date must be on or after start date.' ) );
+        }
+
+        // Check blocked dates for entire range
+        $check_end = $date_end ?: $date;
+        $check_date = strtotime( $date );
+        $check_end_ts = strtotime( $check_end );
+        while ( $check_date <= $check_end_ts ) {
+            $check_str = date( 'Y-m-d', $check_date );
+            $blocked = MBS_Blocked_Dates::is_blocked( $check_str, $space );
+            if ( $blocked ) {
+                $reason_msg = $blocked->reason ? ' Reason: ' . $blocked->reason : '';
+                wp_send_json_error( array( 'message' => 'Sorry, ' . date( 'j M Y', $check_date ) . ' is unavailable for booking.' . $reason_msg ) );
+            }
+            $check_date += 86400;
         }
 
         $result = MBS_Bookings::create( $_POST );
@@ -148,7 +162,7 @@ class MBS_Public {
                 'space'      => $b->space,
                 'start_time' => $b->start_time,
                 'end_time'   => $b->end_time,
-                'all_day'    => $b->space === 'Outdoor Area',
+                'all_day'    => ! empty( $b->all_day ),
             );
         }, $bookings );
         wp_send_json_success( $safe );
