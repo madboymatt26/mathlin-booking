@@ -35,7 +35,7 @@ jQuery(function ($) {
         var ref      = $btn.data('ref');
         var redirect = $btn.data('redirect');
         if (!confirm('Mark booking ' + ref + ' as paid? A payment confirmation email will be sent to the booker.')) return;
-        nmsUpdateStatus(ref, 'paid', $btn, redirect);
+        nmsUpdateStatus(ref, 'paid', $btn, redirect || true);
     });
 
     // ── Archive single booking ─────────────────────────────────────────────────
@@ -44,7 +44,7 @@ jQuery(function ($) {
         var ref      = $btn.data('ref');
         var redirect = $btn.data('redirect');
         if (!confirm('Archive booking ' + ref + '?')) return;
-        nmsUpdateStatus(ref, 'archived', $btn, redirect);
+        nmsUpdateStatus(ref, 'archived', $btn, redirect || true);
     });
 
     // ── Archive past bookings ──────────────────────────────────────────────────
