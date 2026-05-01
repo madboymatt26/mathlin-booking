@@ -4,6 +4,94 @@
 
     <div class="nms-settings-layout">
 
+        <!-- Bookable Spaces / Resources -->
+        <div class="nms-card">
+            <div class="nms-card-header">
+                <h2>🏛️ Bookable Spaces &amp; Pricing</h2>
+            </div>
+            <p>Configure the spaces available for booking. You can add, remove, or change pricing at any time. Changes take effect immediately on the public booking form.</p>
+
+            <?php $spaces = MBS_Bookings::get_spaces(); ?>
+            <table class="widefat nms-spaces-table" id="nms-spaces-table">
+                <thead>
+                    <tr>
+                        <th>Space Name</th>
+                        <th>Rate (£)</th>
+                        <th>Unit</th>
+                        <th>Capacity</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="nms-spaces-tbody">
+                    <?php foreach ( $spaces as $name => $info ) : ?>
+                    <tr class="nms-space-row">
+                        <td><input type="text" class="nms-space-name regular-text" value="<?php echo esc_attr( $name ); ?>" placeholder="e.g. Main Hall"></td>
+                        <td><input type="number" class="nms-space-rate" value="<?php echo esc_attr( $info['rate'] ); ?>" min="0" step="0.01" style="width:80px"></td>
+                        <td>
+                            <select class="nms-space-unit">
+                                <option value="hr" <?php selected( $info['unit'], 'hr' ); ?>>per hour</option>
+                                <option value="day" <?php selected( $info['unit'], 'day' ); ?>>per day</option>
+                            </select>
+                        </td>
+                        <td><input type="number" class="nms-space-capacity" value="<?php echo esc_attr( $info['capacity'] ?? '' ); ?>" min="1" style="width:70px" placeholder="—"></td>
+                        <td><button type="button" class="button nms-remove-space" title="Remove space">&times;</button></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <p style="margin-top:12px;">
+                <button type="button" class="button" id="nms-add-space">+ Add Space</button>
+            </p>
+
+            <h4 style="margin-top:1.5rem">Kitchen Add-on</h4>
+            <table class="form-table">
+                <tr>
+                    <th><label for="kitchen_price">Kitchen add-on price (£)</label></th>
+                    <td>
+                        <input type="number" id="kitchen_price" name="kitchen_price"
+                               value="<?php echo esc_attr( MBS_Bookings::get_kitchen_price() ); ?>"
+                               min="0" step="0.01" style="width:80px">
+                        <span class="description">per session</span>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="nms-settings-actions">
+                <button id="nms-save-settings" class="button button-primary">Save All Settings</button>
+                <span id="nms-settings-msg" class="nms-settings-msg"></span>
+            </div>
+        </div>
+
+        <!-- Email & Notifications -->
+        <div class="nms-card">
+            <div class="nms-card-header">
+                <h2>📧 Email &amp; Notifications</h2>
+            </div>
+            <p>Configure where booking notifications are sent and the "From" address on outgoing emails.</p>
+
+            <table class="form-table">
+                <tr>
+                    <th><label for="admin_email">Admin / Notification Email</label></th>
+                    <td>
+                        <input type="email" id="admin_email" name="admin_email"
+                               value="<?php echo esc_attr( MBS_Bookings::get_admin_email() ); ?>"
+                               class="regular-text"
+                               placeholder="bookings@needhamscouts.uk">
+                        <p class="description">
+                            New booking notifications are sent here. This is also used as the "From" address and the reply-to address shown to bookers.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <p><strong>Note:</strong> When a booking is confirmed, the invoice is automatically attached to the confirmation email sent to the booker.</p>
+
+            <div class="nms-settings-actions">
+                <button id="nms-save-settings" class="button button-primary">Save All Settings</button>
+                <span id="nms-settings-msg" class="nms-settings-msg"></span>
+            </div>
+        </div>
+
         <!-- Home Assistant Settings -->
         <div class="nms-card">
             <div class="nms-card-header">
@@ -68,17 +156,15 @@
             </table>
 
             <h3 style="margin-top:1.5rem">Home Assistant configuration.yaml example</h3>
-            <p>Because bookings require a minimum notice period, HA only needs to poll <strong>once a day at midnight</strong> to load that day's schedule. This is much more efficient than polling every few minutes.</p>
             <pre class="nms-code-block"># Poll once a day – today's bookings are loaded at midnight
 rest:
   - resource: <?php echo esc_html( rest_url( 'mathlin/v1/bookings/today' ) ); ?>
 
-    scan_interval: 86400   # 86400 seconds = once every 24 hours
+    scan_interval: 86400
     sensor:
       - name: "Scout Hall Today Booking Count"
         value_template: "{{ value_json | length }}"
 
-      # First booking of the day
       - name: "Scout Hall First Booking Today"
         value_template: >
           {% if value_json | length > 0 %}
@@ -95,44 +181,6 @@ rest:
           - attendees
           - purpose
           - kitchen</pre>
-
-            <h3 style="margin-top:1.5rem">Trigger the poll at midnight (automations.yaml)</h3>
-            <pre class="nms-code-block">automation:
-  - alias: "Scout Hall – Load today's bookings at midnight"
-    trigger:
-      - platform: time
-        at: "00:00:00"
-    action:
-      # Force HA to refresh the REST sensor immediately
-      - service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.scout_hall_today_booking_count
-            - sensor.scout_hall_first_booking_today
-
-  - alias: "Scout Hall – Pre-heat before each booking"
-    trigger:
-      # Fires when the sensor updates (i.e. at midnight with fresh data)
-      - platform: state
-        entity_id: sensor.scout_hall_first_booking_today
-    condition:
-      - condition: template
-        value_template: >
-          {{ states('sensor.scout_hall_today_booking_count') | int > 0 }}
-    action:
-      # Schedule heating to come on 1 hour before the first booking
-      - service: climate.set_temperature
-        target:
-          entity_id: climate.scout_hall
-        data:
-          temperature: 19
-      - service: notify.mobile_app_your_phone
-        data:
-          title: "Scout Hall booked today"
-          message: >
-            {{ state_attr('sensor.scout_hall_first_booking_today', 'space') }}
-            at {{ state_attr('sensor.scout_hall_first_booking_today', 'start_time') }}
-            ({{ state_attr('sensor.scout_hall_first_booking_today', 'attendees') }} people)</pre>
         </div>
 
         <!-- GitHub Auto-Update Settings -->
@@ -153,8 +201,7 @@ rest:
                                autocomplete="off">
                         <p class="description">
                             Required because the repository is <strong>private</strong>.<br>
-                            Create a token at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> with <code>repo</code> scope.<br>
-                            The token is stored in the WordPress database and only used to check for releases and download updates.
+                            Create a token at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> with <code>repo</code> scope.
                         </p>
                     </td>
                 </tr>
@@ -167,16 +214,6 @@ rest:
                     <td><code><?php echo esc_html( MBS_VERSION ); ?></code></td>
                 </tr>
             </table>
-
-            <h4 style="margin-top:1.5rem">How to release an update</h4>
-            <ol>
-                <li>Update the version number in <code>mathlin-booking.php</code> (both the header and <code>MBS_VERSION</code>)</li>
-                <li>Push your changes to the <code>main</code> branch on GitHub</li>
-                <li>Go to <a href="https://github.com/madboymatt26/mathlin-booking/releases/new" target="_blank">GitHub → Releases → Create new release</a></li>
-                <li>Set the tag to the version number (e.g. <code>1.0.1</code> or <code>v1.0.1</code>)</li>
-                <li>Publish the release</li>
-                <li>WordPress will detect the update within 12 hours, or check manually at <strong>Dashboard → Updates</strong></li>
-            </ol>
 
             <div class="nms-settings-actions">
                 <button id="nms-check-update" class="button">Check for Updates Now</button>
@@ -199,14 +236,9 @@ rest:
                             How many days notice is required before a booking can be made.<br>
                             <strong>0</strong> = same-day bookings allowed &bull;
                             <strong>1</strong> = must book at least 1 day ahead &bull;
-                            <strong>7</strong> = must book at least a week ahead.<br>
-                            The booking form and calendar will automatically block out dates that are too soon.
+                            <strong>7</strong> = must book at least a week ahead.
                         </p>
                     </td>
-                </tr>
-                <tr>
-                    <th>Admin Email</th>
-                    <td><code>bookings@needhamscouts.uk</code> <span class="description">(edit in class-email.php to change)</span></td>
                 </tr>
                 <tr>
                     <th>Database Table</th>

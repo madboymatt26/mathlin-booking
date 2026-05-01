@@ -3,13 +3,51 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class MBS_Bookings {
 
-    // ── Pricing ────────────────────────────────────────────────────────────────
+    // ── Spaces / Resources ─────────────────────────────────────────────────────
+    /**
+     * Get configurable spaces from the database.
+     * Falls back to defaults if nothing is saved yet.
+     */
     public static function get_spaces() {
+        $spaces = get_option( 'mbs_spaces', array() );
+
+        if ( empty( $spaces ) ) {
+            $spaces = self::get_default_spaces();
+        }
+
+        return $spaces;
+    }
+
+    /**
+     * Default spaces used on first install or if option is empty.
+     */
+    public static function get_default_spaces() {
         return array(
             'Main Scout Hall' => array( 'rate' => 25, 'unit' => 'hr',  'capacity' => 80 ),
             'Meeting Room'    => array( 'rate' => 12, 'unit' => 'hr',  'capacity' => 20 ),
             'Outdoor Area'    => array( 'rate' => 40, 'unit' => 'day', 'capacity' => 100 ),
         );
+    }
+
+    /**
+     * Save spaces to the database.
+     */
+    public static function save_spaces( $spaces ) {
+        return update_option( 'mbs_spaces', $spaces );
+    }
+
+    /**
+     * Get the kitchen add-on price.
+     */
+    public static function get_kitchen_price() {
+        return (float) get_option( 'mbs_kitchen_price', 10 );
+    }
+
+    /**
+     * Get the admin email address.
+     */
+    public static function get_admin_email() {
+        return get_option( 'mbs_admin_email', 'bookings@needhamscouts.uk' );
     }
 
     public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false ) {
@@ -20,15 +58,15 @@ class MBS_Bookings {
         $cost = 0;
 
         if ( $info['unit'] === 'day' ) {
-            $cost = $info['rate'];
+            $cost = (float) $info['rate'];
         } elseif ( $start_time && $end_time ) {
             $start = strtotime( $start_time );
             $end   = strtotime( $end_time );
             $hours = ceil( max( 0, ( $end - $start ) / 3600 ) );
-            $cost  = $hours * $info['rate'];
+            $cost  = $hours * (float) $info['rate'];
         }
 
-        if ( $kitchen ) $cost += 10;
+        if ( $kitchen ) $cost += self::get_kitchen_price();
         return $cost;
     }
 

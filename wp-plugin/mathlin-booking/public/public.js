@@ -163,10 +163,14 @@ jQuery(function ($) {
             }
         }
 
-        var total = spaceCost + (kitchen ? 10 : 0);
+        var kitchenPrice = parseFloat(NMS.kitchen_price) || 10;
+        var total = spaceCost + (kitchen ? kitchenPrice : 0);
         $('#nms-cost-space-label').text(spaceLabel);
         $('#nms-cost-space-val').text('£' + total2dp(spaceCost));
         $('#nms-cost-kitchen-row').toggle(kitchen);
+        if (kitchen) {
+            $('#nms-cost-kitchen-row').find('span').last().text('£' + total2dp(kitchenPrice));
+        }
         $('#nms-cost-total').text('£' + total2dp(total));
 
         // Toggle time fields

@@ -51,16 +51,21 @@
                         <label for="nms-space">Space Required <span class="nms-req">*</span></label>
                         <select id="nms-space" name="space" required>
                             <option value="">— Select a space —</option>
-                            <option value="Main Scout Hall">Main Scout Hall (£25/hr, up to 80 people)</option>
-                            <option value="Meeting Room">Meeting Room (£12/hr, up to 20 people)</option>
-                            <option value="Outdoor Area">Outdoor Area (£40/day)</option>
+                            <?php
+                            $spaces = MBS_Bookings::get_spaces();
+                            foreach ( $spaces as $name => $info ) :
+                                $price_label = '£' . number_format( $info['rate'], 0 ) . '/' . $info['unit'];
+                                $cap_label   = ! empty( $info['capacity'] ) ? ', up to ' . $info['capacity'] . ' people' : '';
+                            ?>
+                            <option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $name ); ?> (<?php echo esc_html( $price_label . $cap_label ); ?>)</option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="nms-form-group">
                         <label for="nms-kitchen">Kitchen Add-on</label>
                         <select id="nms-kitchen" name="kitchen">
                             <option value="">No kitchen required</option>
-                            <option value="1">Yes, include kitchen (£10/session)</option>
+                            <option value="1">Yes, include kitchen (£<?php echo number_format( MBS_Bookings::get_kitchen_price(), 0 ); ?>/session)</option>
                         </select>
                     </div>
                 </div>

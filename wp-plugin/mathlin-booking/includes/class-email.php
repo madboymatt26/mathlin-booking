@@ -3,9 +3,15 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class MBS_Email {
 
-    const ADMIN_EMAIL = 'bookings@needhamscouts.uk';
+    /**
+     * Get the admin email address (configurable in settings).
+     */
+    private static function admin_email() {
+        return MBS_Bookings::get_admin_email();
+    }
 
     public static function notify_admin( $booking ) {
+        $admin_email = self::admin_email();
         $subject = '[New Booking] ' . $booking['ref'] . ' – ' . $booking['name'];
         $body    = self::header();
         $body   .= '<h2 style="color:#7413DC;">New Booking Request</h2>';
@@ -13,10 +19,11 @@ class MBS_Email {
         $body   .= self::booking_table( $booking );
         $body   .= '<p style="margin-top:24px;"><a href="' . admin_url( 'admin.php?page=mathlin-booking&action=view&ref=' . $booking['ref'] ) . '" style="background:#7413DC;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">View &amp; Manage Booking</a></p>';
         $body   .= self::footer();
-        self::send( self::ADMIN_EMAIL, $subject, $body );
+        self::send( $admin_email, $subject, $body );
     }
 
     public static function notify_booker( $booking ) {
+        $admin_email = self::admin_email();
         $subject = 'Booking Request Received – ' . $booking['ref'];
         $body    = self::header();
         $body   .= '<h2 style="color:#7413DC;">Thank you for your booking request!</h2>';
@@ -25,23 +32,52 @@ class MBS_Email {
         $body   .= '<p>Your booking reference is: <strong>' . esc_html( $booking['ref'] ) . '</strong></p>';
         $body   .= '<p>We\'ll be in touch shortly to confirm your booking and send an invoice.</p>';
         $body   .= self::booking_table( $booking );
-        $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . self::ADMIN_EMAIL . '">' . self::ADMIN_EMAIL . '</a> or call 01449 797577.</p>';
+        $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a> or call 01449 797577.</p>';
         $body   .= self::footer();
         self::send( $booking['email'], $subject, $body );
     }
 
     public static function notify_confirmed( $booking ) {
+        $admin_email = self::admin_email();
         $subject = 'Booking Confirmed – ' . $booking->ref;
         $body    = self::header();
         $body   .= '<h2 style="color:#7413DC;">Your Booking is Confirmed!</h2>';
         $body   .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
-        $body   .= '<p>Great news — your booking has been confirmed. Please find the details below.</p>';
+        $body   .= '<p>Great news — your booking has been confirmed. Please find the details and invoice attached.</p>';
         $body   .= self::booking_table_obj( $booking );
         $body   .= '<p><strong>Invoice Number:</strong> ' . esc_html( $booking->invoice_number ) . '</p>';
         $body   .= '<p>Payment is due within 14 days. Please transfer to:<br>Sort Code: <strong>12-34-56</strong> | Account: <strong>12345678</strong> | Ref: <strong>' . esc_html( $booking->invoice_number ) . '</strong></p>';
-        $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . self::ADMIN_EMAIL . '">' . self::ADMIN_EMAIL . '</a>.</p>';
+        $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a>.</p>';
         $body   .= self::footer();
-        self::send( $booking->email, $subject, $body );
+
+        // Generate invoice HTML file as attachment
+        $attachments = self::generate_invoice_attachment( $booking );
+
+        self::send( $booking->email, $subject, $body, $attachments );
+    }
+
+    /**
+     * Generate an invoice HTML file and return the path for email attachment.
+     */
+    private static function generate_invoice_attachment( $booking ) {
+        $invoice_html = MBS_Invoice::generate_email_invoice( $booking );
+
+        // Create a temporary HTML file
+        $upload_dir = wp_upload_dir();
+        $invoice_dir = $upload_dir['basedir'] . '/mbs-invoices/';
+
+        if ( ! file_exists( $invoice_dir ) ) {
+            wp_mkdir_p( $invoice_dir );
+            // Add an index.php to prevent directory listing
+            file_put_contents( $invoice_dir . 'index.php', '<?php // Silence is golden.' );
+        }
+
+        $filename = sanitize_file_name( $booking->invoice_number . '.html' );
+        $filepath = $invoice_dir . $filename;
+
+        file_put_contents( $filepath, $invoice_html );
+
+        return array( $filepath );
     }
 
     private static function booking_table( $b ) {
@@ -50,7 +86,9 @@ class MBS_Email {
     }
 
     private static function booking_table_obj( $b ) {
-        $time = ( $b->space === 'Outdoor Area' ) ? 'All day' : ( $b->start_time . ' – ' . $b->end_time );
+        $spaces   = MBS_Bookings::get_spaces();
+        $is_daily = isset( $spaces[ $b->space ] ) && $spaces[ $b->space ]['unit'] === 'day';
+        $time     = $is_daily ? 'All day' : ( $b->start_time . ' – ' . $b->end_time );
         return self::table_html( $b->ref, $b->space, $b->booking_date, $time, $b->attendees, $b->purpose, $b->amount );
     }
 
@@ -87,11 +125,12 @@ class MBS_Email {
         </div></body></html>';
     }
 
-    private static function send( $to, $subject, $html_body ) {
+    private static function send( $to, $subject, $html_body, $attachments = array() ) {
+        $admin_email = self::admin_email();
         $headers = array(
             'Content-Type: text/html; charset=UTF-8',
-            'From: Needham Market Scouts <' . self::ADMIN_EMAIL . '>',
+            'From: Needham Market Scouts <' . $admin_email . '>',
         );
-        wp_mail( $to, $subject, $html_body, $headers );
+        wp_mail( $to, $subject, $html_body, $headers, $attachments );
     }
 }

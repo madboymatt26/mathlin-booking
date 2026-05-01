@@ -29,6 +29,7 @@ class MBS_Public {
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
                 'nonce'           => wp_create_nonce( 'mbs_public_nonce' ),
                 'spaces'          => MBS_Bookings::get_spaces(),
+                'kitchen_price'   => MBS_Bookings::get_kitchen_price(),
                 'min_notice_days' => $notice_days,
                 'min_date'        => date( 'Y-m-d', strtotime( "+{$notice_days} days" ) ),
             ) );

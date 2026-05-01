@@ -145,16 +145,49 @@ class MBS_Admin {
         $webhook      = esc_url_raw( $_POST['ha_webhook_url'] ?? '' );
         $notice_days  = absint( $_POST['min_notice_days'] ?? 1 );
         $github_token = sanitize_text_field( $_POST['github_token'] ?? '' );
+        $admin_email  = sanitize_email( $_POST['admin_email'] ?? '' );
+        $kitchen_price = floatval( $_POST['kitchen_price'] ?? 10 );
 
         // Clamp to a sensible range: 0 = same day allowed, 30 = max notice required
         $notice_days = max( 0, min( 30, $notice_days ) );
 
+        // Clamp kitchen price
+        $kitchen_price = max( 0, $kitchen_price );
+
         update_option( 'mbs_ha_webhook_url',  $webhook );
         update_option( 'mbs_min_notice_days', $notice_days );
+        update_option( 'mbs_kitchen_price',   $kitchen_price );
+
+        // Save admin email if provided
+        if ( ! empty( $admin_email ) ) {
+            update_option( 'mbs_admin_email', $admin_email );
+        }
 
         // Only update the token if a value was provided (don't blank it if the field wasn't sent)
         if ( ! empty( $github_token ) ) {
             update_option( 'mbs_github_token', $github_token );
+        }
+
+        // Save spaces if provided
+        if ( isset( $_POST['spaces'] ) && is_array( $_POST['spaces'] ) ) {
+            $spaces = array();
+            foreach ( $_POST['spaces'] as $space_data ) {
+                $name = sanitize_text_field( $space_data['name'] ?? '' );
+                if ( empty( $name ) ) continue;
+
+                $rate     = floatval( $space_data['rate'] ?? 0 );
+                $unit     = in_array( $space_data['unit'] ?? 'hr', array( 'hr', 'day' ) ) ? $space_data['unit'] : 'hr';
+                $capacity = absint( $space_data['capacity'] ?? 0 );
+
+                $spaces[ $name ] = array(
+                    'rate'     => max( 0, $rate ),
+                    'unit'     => $unit,
+                    'capacity' => $capacity > 0 ? $capacity : null,
+                );
+            }
+            if ( ! empty( $spaces ) ) {
+                MBS_Bookings::save_spaces( $spaces );
+            }
         }
 
         wp_send_json_success( array( 'saved' => true, 'min_notice_days' => $notice_days ) );
