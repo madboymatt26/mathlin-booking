@@ -15,6 +15,7 @@ class MBS_Admin {
         add_action( 'wp_ajax_mbs_archive_past',   array( $this, 'ajax_archive_past' ) );
         add_action( 'wp_ajax_mbs_add_blocked',    array( $this, 'ajax_add_blocked' ) );
         add_action( 'wp_ajax_mbs_delete_blocked', array( $this, 'ajax_delete_blocked' ) );
+        add_action( 'wp_ajax_mbs_clear_expired_blocks', array( $this, 'ajax_clear_expired_blocks' ) );
     }
 
     // ── Menu ───────────────────────────────────────────────────────────────────
@@ -352,5 +353,13 @@ class MBS_Admin {
 
         MBS_Blocked_Dates::delete( $id );
         wp_send_json_success( array( 'deleted' => $id ) );
+    }
+
+    public function ajax_clear_expired_blocks() {
+        check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Forbidden', 403 );
+
+        $count = MBS_Blocked_Dates::clear_expired();
+        wp_send_json_success( array( 'cleared' => $count ) );
     }
 }

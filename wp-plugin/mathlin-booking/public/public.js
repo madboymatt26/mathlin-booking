@@ -56,15 +56,20 @@ jQuery(function ($) {
             var tooSoon = thisDate >= today && thisDate < minDate;
             if (tooSoon) classes.push('nms-beyond-limit');
 
-            // Check if date is blocked (all spaces)
+            // Check if date is blocked (all spaces or partial)
             var isBlocked = false;
+            var isPartiallyBlocked = false;
             if (NMS.blocked_dates && NMS.blocked_dates[dateStr]) {
                 var blocks = NMS.blocked_dates[dateStr];
                 for (var bi = 0; bi < blocks.length; bi++) {
                     if (blocks[bi] === '__all__') { isBlocked = true; break; }
                 }
+                if (!isBlocked && blocks.length > 0) {
+                    isPartiallyBlocked = true;
+                }
             }
             if (isBlocked) classes.push('nms-blocked');
+            if (isPartiallyBlocked) classes.push('nms-partially-blocked');
 
             var $cell = $('<div>')
                 .addClass(classes.join(' '))
@@ -77,6 +82,8 @@ jQuery(function ($) {
             // Show blocked label
             if (isBlocked) {
                 $cell.append('<span class="nms-blocked-label">Unavailable</span>');
+            } else if (isPartiallyBlocked) {
+                $cell.append('<span class="nms-partial-label">Limited</span>');
             }
 
             if (thisDate >= minDate && !isBlocked) {

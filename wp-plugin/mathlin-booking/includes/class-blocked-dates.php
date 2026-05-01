@@ -34,6 +34,16 @@ class MBS_Blocked_Dates {
     }
 
     /**
+     * Remove all expired blocked date entries (date_to < today).
+     */
+    public static function clear_expired() {
+        global $wpdb;
+        $table = self::table();
+        $today = date( 'Y-m-d' );
+        return $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE date_to < %s", $today ) );
+    }
+
+    /**
      * Get all blocked date entries, ordered by date_from.
      */
     public static function get_all() {

@@ -142,6 +142,23 @@ jQuery(function ($) {
         });
     });
 
+    // ── Clear expired blocks ───────────────────────────────────────────────────
+    $('#nms-clear-expired').on('click', function () {
+        if (!confirm('Remove all expired blocked dates?')) return;
+        var $btn = $(this);
+        $btn.prop('disabled', true).text('Removing…');
+
+        $.post(MBS_Admin.ajax_url, {
+            action: 'mbs_clear_expired_blocks',
+            nonce:  MBS_Admin.nonce
+        }, function (res) {
+            $btn.prop('disabled', false).text('🗑 Remove All Expired');
+            if (res.success) {
+                window.location.reload();
+            }
+        });
+    });
+
     // ── Save settings ──────────────────────────────────────────────────────────
     $('#nms-save-all').on('click', function () {
         var $btn = $(this);
