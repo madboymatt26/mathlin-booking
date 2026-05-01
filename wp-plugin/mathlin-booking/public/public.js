@@ -231,9 +231,24 @@ jQuery(function ($) {
         var hideTime = allDay;
         $('#nms-time-row').css({ opacity: hideTime ? 0.4 : 1, pointerEvents: hideTime ? 'none' : 'auto' });
         $('#nms-start, #nms-end').prop('required', !hideTime);
+        // Clear error state on time fields when switching to full day
+        if (hideTime) {
+            $('#nms-start, #nms-end').removeClass('nms-field-error');
+        }
     }
 
     $('#nms-space, #nms-start, #nms-end, #nms-kitchen, #nms-allday, #nms-date, #nms-date-end').on('change', updateCost);
+
+    // When switching to full day, also hide the error message if it was about time fields
+    $('#nms-allday').on('change', function () {
+        if ($(this).val() === '1') {
+            $('#nms-start, #nms-end').removeClass('nms-field-error').val('');
+            // If the only error was time fields, hide the error message
+            if ($('.nms-field-error').length === 0) {
+                $('#nms-error-msg').hide();
+            }
+        }
+    });
 
     // Sync end date min with start date
     $('#nms-date').on('change', function() {
