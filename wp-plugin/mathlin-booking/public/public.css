@@ -52,6 +52,7 @@
     border: 1px solid #e5e7eb;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     overflow: hidden;
+    max-width: 100%;
 }
 
 .nms-cal-header {
@@ -80,7 +81,7 @@
 
 .nms-cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .nms-cal-day-names > div {
@@ -236,4 +237,51 @@
 @media (max-width: 768px) {
     .nms-calendar-layout { grid-template-columns: 1fr; }
     .nms-form-row        { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .nms-calendar-main { border-radius: 8px; }
+
+    .nms-cal-header { padding: 0.75rem 1rem; }
+    .nms-cal-header h3 { font-size: 0.95rem; }
+    .nms-cal-nav { width: 30px; height: 30px; font-size: 1.2rem; }
+
+    .nms-cal-day-names > div {
+        font-size: 0.6rem;
+        padding: 0.4rem 0;
+        letter-spacing: 0;
+    }
+
+    .nms-cal-days {
+        padding: 0.25rem;
+        gap: 2px;
+    }
+
+    .nms-cal-day {
+        min-height: 36px;
+        font-size: 0.75rem;
+        border-radius: 6px;
+    }
+
+    .nms-has-bookings::after {
+        bottom: 2px;
+        width: 5px;
+        height: 5px;
+    }
+
+    .nms-blocked-label,
+    .nms-partial-label {
+        font-size: 0.45rem;
+    }
+
+    .nms-legend {
+        gap: 0.75rem;
+        font-size: 0.7rem;
+    }
+
+    .nms-calendar-sidebar {
+        padding: 1rem;
+    }
+
+    .nms-section-title { font-size: 1.3rem; }
 }
