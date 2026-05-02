@@ -61,6 +61,21 @@ class MBS_Email_Templates {
                 'subject' => 'Reminder: Your booking is coming up – {ref}',
                 'body'    => "Hi {name},\n\nJust a friendly reminder that your booking is coming up soon.\n\nSpace: {space}\nDate: {date}\nTime: {time}\n\nLocation: {org_address}\n\nIf you need to make any changes or cancel, please contact us at {admin_email} or call {phone}.\n\nWe look forward to seeing you!",
             ),
+            'chase_gentle' => array(
+                'label'   => 'Payment Chase #1 — Friendly Reminder',
+                'subject' => 'Payment Reminder – {invoice}',
+                'body'    => "Hi {name},\n\nJust a gentle reminder that payment for your booking is now due.\n\nInvoice: {invoice}\nBooking: {space} on {date}\nAmount Due: {amount}\n\nPayment details:\n{bank_details}\n\nIf you have already made payment, please disregard this email. If you have any questions, contact us at {admin_email} or call {phone}.",
+            ),
+            'chase_overdue' => array(
+                'label'   => 'Payment Chase #2 — Overdue',
+                'subject' => 'Payment Overdue – {invoice}',
+                'body'    => "Hi {name},\n\nOur records show that payment for your booking is now overdue. Please arrange payment at your earliest convenience.\n\nInvoice: {invoice}\nBooking: {space} on {date}\nAmount Due: {amount}\n\nPayment details:\n{bank_details}\n\nIf you have already made payment, please disregard this email. If you have any questions, contact us at {admin_email} or call {phone}.",
+            ),
+            'chase_urgent' => array(
+                'label'   => 'Payment Chase #3 — Urgent Final Notice',
+                'subject' => 'URGENT: Payment Required – {invoice}',
+                'body'    => "Hi {name},\n\nThis is a final reminder. Payment for your booking is significantly overdue. Please arrange payment immediately to avoid your booking being cancelled.\n\nInvoice: {invoice}\nBooking: {space} on {date}\nAmount Due: {amount}\n\nPayment details:\n{bank_details}\n\nIf you have already made payment, please disregard this email. If you have any questions, contact us at {admin_email} or call {phone}.",
+            ),
         );
     }
 

@@ -39,8 +39,9 @@ class MBS_Payment_Chaser {
 
         $bank          = MBS_Bookings::get_bank_details();
         $payment_days  = $bank['payment_days'];
-        $max_chases    = (int) get_option( 'mbs_max_chase_emails', 3 );
-        $chase_interval = 3; // days between chases
+        $chase_settings = MBS_Email_Templates::get_chase_settings();
+        $max_chases    = $chase_settings['max_chases'];
+        $chase_interval = $chase_settings['chase_interval'];
 
         global $wpdb;
         $table    = $wpdb->prefix . MBS_TABLE;
@@ -80,47 +81,36 @@ class MBS_Payment_Chaser {
      */
     public static function send_chase( $booking, $manual = false ) {
         $chase_count = (int) ( $booking->chase_count ?? 0 );
-        $bank        = MBS_Bookings::get_bank_details();
+        $org         = MBS_Email_Templates::get_org_settings();
         $admin_email = MBS_Bookings::get_admin_email();
 
-        // Determine urgency based on chase count
+        // Determine which template and colour based on chase count
         if ( $chase_count === 0 ) {
-            $subject = 'Payment Reminder – ' . $booking->invoice_number;
+            $tpl_key = 'chase_gentle';
             $heading = 'Friendly Payment Reminder';
-            $tone    = 'Just a gentle reminder that payment for your booking is now due.';
-            $colour  = '#f39c12'; // amber
+            $colour  = '#f39c12';
         } elseif ( $chase_count === 1 ) {
-            $subject = 'Payment Overdue – ' . $booking->invoice_number;
+            $tpl_key = 'chase_overdue';
             $heading = 'Payment Overdue';
-            $tone    = 'Our records show that payment for your booking is now overdue. Please arrange payment at your earliest convenience.';
-            $colour  = '#e67e22'; // orange
+            $colour  = '#e67e22';
         } else {
-            $subject = 'URGENT: Payment Required – ' . $booking->invoice_number;
+            $tpl_key = 'chase_urgent';
             $heading = 'Urgent Payment Required';
-            $tone    = 'This is a final reminder. Payment for your booking is significantly overdue. Please arrange payment immediately to avoid your booking being cancelled.';
-            $colour  = '#e74c3c'; // red
+            $colour  = '#e74c3c';
         }
+
+        $tpl       = MBS_Email_Templates::get_template( $tpl_key );
+        $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
+        $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
 
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
         $body .= '<div style="background:' . $colour . ';padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; Needham Market Scout Group</h1>';
+        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Payment Reminder</p>';
         $body .= '</div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:' . $colour . ';">' . $heading . '</h2>';
-        $body .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
-        $body .= '<p>' . $tone . '</p>';
-
-        $body .= '<table style="width:100%;border-collapse:collapse;margin:16px 0;">';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;width:35%;border-bottom:1px solid #e0d0f0;">Invoice</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $booking->invoice_number ) . '</td></tr>';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Booking</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $booking->space ) . ' on ' . esc_html( date( 'j F Y', strtotime( $booking->booking_date ) ) ) . '</td></tr>';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Amount Due</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;font-size:18px;font-weight:bold;color:' . $colour . ';">&pound;' . number_format( $booking->amount, 2 ) . '</td></tr>';
-        $body .= '</table>';
-
-        $body .= '<p><strong>Payment details:</strong><br>';
-        $body .= 'Sort Code: <strong>' . esc_html( $bank['sort_code'] ) . '</strong><br>';
-        $body .= 'Account: <strong>' . esc_html( $bank['account_number'] ) . '</strong><br>';
-        $body .= 'Reference: <strong>' . esc_html( $booking->invoice_number ) . '</strong></p>';
+        $body .= nl2br( esc_html( $body_text ) );
 
         // Pay Now button if WooCommerce available
         if ( MBS_Woo_Payment::is_available() ) {
@@ -132,9 +122,8 @@ class MBS_Payment_Chaser {
             }
         }
 
-        $body .= '<p>If you have already made payment, please disregard this email. If you have any questions, contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a> or call 01449 797577.</p>';
         $body .= '</div>';
-        $body .= '<div style="text-align:center;padding:16px;color:#999;font-size:12px;">Needham Market Scout Group &bull; Crown St, Needham Market, IP6 8RY &bull; Charity No. 1038177</div>';
+        $body .= '<div style="text-align:center;padding:16px;color:#999;font-size:12px;">' . esc_html( $org['name'] ) . ' &bull; ' . esc_html( $org['address'] ) . ' &bull; Charity No. ' . esc_html( $org['charity_number'] ) . '</div>';
         $body .= '</body></html>';
 
         $headers = array(
