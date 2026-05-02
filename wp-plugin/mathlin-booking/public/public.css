@@ -261,17 +261,19 @@
         min-height: 36px;
         font-size: 0.75rem;
         border-radius: 6px;
+        overflow: hidden;
+    }
+
+    /* Hide text labels on mobile — the background colour is enough */
+    .nms-blocked-label,
+    .nms-partial-label {
+        display: none;
     }
 
     .nms-has-bookings::after {
         bottom: 2px;
         width: 5px;
         height: 5px;
-    }
-
-    .nms-blocked-label,
-    .nms-partial-label {
-        font-size: 0.45rem;
     }
 
     .nms-legend {
