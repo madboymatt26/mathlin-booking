@@ -36,6 +36,8 @@ class MBS_Database {
             last_chased     DATETIME     DEFAULT NULL,
             series_id       VARCHAR(20)  DEFAULT NULL,
             admin_notes     TEXT         DEFAULT '',
+            custom_fields   TEXT         DEFAULT '',
+            modification_token VARCHAR(64) DEFAULT NULL,
             created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -81,6 +83,24 @@ class MBS_Database {
             KEY idx_date   (created_at)
         ) {$charset};";
         dbDelta( $sql3 );
+
+        // Email queue table
+        $queue_table = $wpdb->prefix . 'mathlin_email_queue';
+        $sql4 = "CREATE TABLE IF NOT EXISTS {$queue_table} (
+            id          BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            to_email    VARCHAR(150) NOT NULL,
+            subject     VARCHAR(255) NOT NULL,
+            body        LONGTEXT     NOT NULL,
+            headers     TEXT         DEFAULT '',
+            attachments TEXT         DEFAULT '',
+            attempts    SMALLINT     NOT NULL DEFAULT 0,
+            status      VARCHAR(20)  NOT NULL DEFAULT 'pending',
+            next_retry  DATETIME     DEFAULT NULL,
+            created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_status (status, next_retry)
+        ) {$charset};";
+        dbDelta( $sql4 );
 
         update_option( 'mbs_db_version', MBS_VERSION );
     }
@@ -137,6 +157,18 @@ class MBS_Database {
         if ( empty( $col ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN chase_count SMALLINT NOT NULL DEFAULT 0 AFTER reminder_sent" );
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN last_chased DATETIME DEFAULT NULL AFTER chase_count" );
+        }
+
+        // Add custom_fields column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'custom_fields'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN custom_fields TEXT DEFAULT '' AFTER admin_notes" );
+        }
+
+        // Add modification_token column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'modification_token'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN modification_token VARCHAR(64) DEFAULT NULL AFTER custom_fields" );
         }
     }
 

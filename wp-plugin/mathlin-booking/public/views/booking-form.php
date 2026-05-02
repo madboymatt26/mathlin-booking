@@ -139,6 +139,8 @@
             </div>
 
             <!-- Cost preview -->
+            <?php MBS_Custom_Fields::render_form_fields(); ?>
+
             <div class="nms-form-section" id="nms-cost-section">
                 <h3>Cost Estimate</h3>
                 <div class="nms-cost-table">

@@ -114,6 +114,17 @@ class MBS_Bookings {
             'invoice_number'   => 'INV-' . $ref,
         );
 
+        // Store custom field responses
+        if ( ! empty( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ) {
+            $custom = MBS_Custom_Fields::validate_submission( $data );
+            if ( ! is_wp_error( $custom ) && ! empty( $custom ) ) {
+                $insert['custom_fields'] = wp_json_encode( $custom );
+            }
+        }
+
+        // Generate modification token
+        $insert['modification_token'] = wp_generate_password( 32, false );
+
         $result = $wpdb->insert( $table, $insert );
         if ( $result === false ) {
             return new WP_Error( 'db_error', 'Could not save booking.' );

@@ -7,6 +7,7 @@ class MBS_Public {
         add_shortcode( 'mathlin_booking', array( $this, 'shortcode_booking' ) );
         add_shortcode( 'mathlin_calendar', array( $this, 'shortcode_calendar' ) );
         add_shortcode( 'mathlin_status', array( $this, 'shortcode_status' ) );
+        add_shortcode( 'mathlin_modify', array( $this, 'shortcode_modify' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_nopriv_mbs_submit_booking', array( $this, 'ajax_submit' ) );
         add_action( 'wp_ajax_mbs_submit_booking',        array( $this, 'ajax_submit' ) );
@@ -24,7 +25,9 @@ class MBS_Public {
         if ( is_a( $post, 'WP_Post' ) && (
             has_shortcode( $post->post_content, 'mathlin_booking' ) ||
             has_shortcode( $post->post_content, 'mathlin_calendar' ) ||
-            has_shortcode( $post->post_content, 'mathlin_status' )
+            has_shortcode( $post->post_content, 'mathlin_status' ) ||
+            has_shortcode( $post->post_content, 'mathlin_modify' ) ||
+            isset( $_GET['mbs_modify'] )
         ) ) {
             wp_enqueue_style(  'mbs-public', MBS_PLUGIN_URL . 'public/public.css', array(), MBS_VERSION );
             wp_enqueue_script( 'mbs-public', MBS_PLUGIN_URL . 'public/public.js',  array( 'jquery' ), MBS_VERSION, true );
@@ -57,8 +60,20 @@ class MBS_Public {
 
     // ── Shortcode: booking status lookup ───────────────────────────────────────
     public function shortcode_status( $atts ) {
+        // Check if this is a modification request redirect
+        if ( isset( $_GET['mbs_modify'] ) && $_GET['mbs_modify'] === '1' ) {
+            ob_start();
+            include MBS_PLUGIN_DIR . 'public/views/modification-form.php';
+            return ob_get_clean();
+        }
         ob_start();
         include MBS_PLUGIN_DIR . 'public/views/booking-status.php';
+        return ob_get_clean();
+    }
+
+    public function shortcode_modify( $atts ) {
+        ob_start();
+        include MBS_PLUGIN_DIR . 'public/views/modification-form.php';
         return ob_get_clean();
     }
 
@@ -160,6 +175,12 @@ class MBS_Public {
                 wp_send_json_error( array( 'message' => MBS_Bookings::format_conflict_message( $conflicts ) ) );
             }
             $check_date += 86400;
+        }
+
+        // Validate custom fields
+        $custom_responses = MBS_Custom_Fields::validate_submission( $_POST );
+        if ( is_wp_error( $custom_responses ) ) {
+            wp_send_json_error( array( 'message' => $custom_responses->get_error_message() ) );
         }
 
         // Handle recurring bookings

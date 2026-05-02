@@ -20,6 +20,7 @@ class MBS_Admin {
         add_action( 'wp_ajax_mbs_save_admin_notes', array( $this, 'ajax_save_admin_notes' ) );
         add_action( 'wp_ajax_mbs_chase_payment',  array( $this, 'ajax_chase_payment' ) );
         add_action( 'wp_ajax_mbs_save_email_settings', array( $this, 'ajax_save_email_settings' ) );
+        add_action( 'wp_ajax_mbs_save_custom_fields', array( $this, 'ajax_save_custom_fields' ) );
     }
 
     // ── Menu ───────────────────────────────────────────────────────────────────
@@ -80,6 +81,22 @@ class MBS_Admin {
             'manage_options',
             'mathlin-emails',
             array( $this, 'render_email_templates' )
+        );
+        add_submenu_page(
+            'mathlin-booking',
+            'Analytics',
+            'Analytics',
+            'manage_options',
+            'mathlin-analytics',
+            array( $this, 'render_analytics' )
+        );
+        add_submenu_page(
+            'mathlin-booking',
+            'Custom Fields',
+            'Custom Fields',
+            'manage_options',
+            'mathlin-custom-fields',
+            array( $this, 'render_custom_fields' )
         );
     }
 
@@ -361,6 +378,14 @@ class MBS_Admin {
         include MBS_PLUGIN_DIR . 'admin/views/email-templates.php';
     }
 
+    public function render_analytics() {
+        include MBS_PLUGIN_DIR . 'admin/views/analytics.php';
+    }
+
+    public function render_custom_fields() {
+        include MBS_PLUGIN_DIR . 'admin/views/custom-fields.php';
+    }
+
     public function ajax_add_blocked() {
         check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Forbidden', 403 );
@@ -482,5 +507,16 @@ class MBS_Admin {
         }
 
         wp_send_json_success( array( 'saved' => true ) );
+    }
+
+    public function ajax_save_custom_fields() {
+        check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Forbidden', 403 );
+
+        $fields = $_POST['fields'] ?? array();
+        if ( ! is_array( $fields ) ) $fields = array();
+
+        MBS_Custom_Fields::save_fields( $fields );
+        wp_send_json_success( array( 'saved' => true, 'count' => count( $fields ) ) );
     }
 }

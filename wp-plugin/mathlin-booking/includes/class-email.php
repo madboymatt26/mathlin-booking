@@ -191,9 +191,19 @@ class MBS_Email {
      */
     private static function ical_button( $booking ) {
         $ical_url = rest_url( 'mathlin/v1/bookings/' . $booking->ref . '/ical' );
-        return '<p style="margin-top:16px;">' .
+        $html = '<p style="margin-top:16px;">' .
             '<a href="' . esc_url( $ical_url ) . '" style="background:#7413DC;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;">📅 Add to Calendar</a>' .
             '</p>';
+
+        // Add modification link if token exists
+        $mod_url = MBS_Modification::get_modification_url( $booking );
+        if ( $mod_url ) {
+            $html .= '<p style="margin-top:8px;text-align:center;">' .
+                '<a href="' . esc_url( $mod_url ) . '" style="color:#7413DC;font-size:13px;">Need to change something? Request a modification</a>' .
+                '</p>';
+        }
+
+        return $html;
     }
 
     private static function header() {
@@ -221,6 +231,7 @@ class MBS_Email {
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . $org['name'] . ' <' . $admin_email . '>',
         );
-        wp_mail( $to, $subject, $html_body, $headers, $attachments );
+        // Use the email queue for automatic retry on failure
+        MBS_Email_Queue::send( $to, $subject, $html_body, $headers, $attachments );
     }
 }

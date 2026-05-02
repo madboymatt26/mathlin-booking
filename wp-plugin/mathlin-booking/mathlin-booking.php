@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     1.14.1
+ * Version:     2.0.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '1.14.1' );
+define( 'MBS_VERSION',    '2.0.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -34,6 +34,9 @@ require_once MBS_PLUGIN_DIR . 'includes/class-woo-payment.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-auto-archive.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-payment-chaser.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-email-templates.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-email-queue.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-custom-fields.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-modification.php';
 require_once MBS_PLUGIN_DIR . 'admin/class-admin.php';
 require_once MBS_PLUGIN_DIR . 'public/class-public.php';
 
@@ -43,6 +46,7 @@ register_deactivation_hook( __FILE__, array( 'MBS_Database', 'on_deactivate' ) )
 register_deactivation_hook( __FILE__, array( 'MBS_Reminders', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Auto_Archive', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Payment_Chaser', 'deactivate' ) );
+register_deactivation_hook( __FILE__, array( 'MBS_Email_Queue', 'deactivate' ) );
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 add_action( 'plugins_loaded', 'mbs_init' );
@@ -63,6 +67,8 @@ function mbs_init() {
     $woo_payment  = new MBS_Woo_Payment();
     $auto_archive   = new MBS_Auto_Archive();
     $payment_chaser = new MBS_Payment_Chaser();
+    $email_queue    = new MBS_Email_Queue();
+    $modification   = new MBS_Modification();
 
     $admin->init();
     $public->init();
@@ -74,4 +80,6 @@ function mbs_init() {
     $woo_payment->init();
     $auto_archive->init();
     $payment_chaser->init();
+    $email_queue->init();
+    $modification->init();
 }

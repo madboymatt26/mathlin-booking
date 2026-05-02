@@ -30,6 +30,7 @@
                 <div class="nms-detail-item nms-detail-full"><label>Notes</label><span><?php echo nl2br( esc_html( $booking->notes ) ); ?></span></div>
                 <?php endif; ?>
                 <div class="nms-detail-item nms-detail-full"><label>Billing Address</label><span><?php echo nl2br( esc_html( $booking->address ) ); ?></span></div>
+                <?php MBS_Custom_Fields::render_admin_display( $booking ); ?>
                 <div class="nms-detail-item"><label>Submitted</label><span><?php echo esc_html( date( 'j F Y H:i', strtotime( $booking->created_at ) ) ); ?></span></div>
                 <div class="nms-detail-item"><label>HA Notified</label><span><?php echo $booking->ha_notified ? '✅ Yes' : '—'; ?></span></div>
                 <?php if ( ! empty( $booking->series_id ) ) : ?>
