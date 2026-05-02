@@ -159,6 +159,19 @@
             </div>
 
             <div class="nms-form-actions">
+                <?php
+                $terms_page_id = (int) get_option( 'mbs_terms_page_id', 0 );
+                if ( $terms_page_id && get_post( $terms_page_id ) ) :
+                    $terms_url = get_permalink( $terms_page_id );
+                ?>
+                <div class="nms-form-group" style="margin-bottom:1rem;text-align:center;">
+                    <label style="display:inline-flex;align-items:center;gap:0.5rem;font-weight:500;cursor:pointer;">
+                        <input type="checkbox" id="nms-terms" name="accept_terms" value="1" required style="width:18px;height:18px;">
+                        I agree to the <a href="<?php echo esc_url( $terms_url ); ?>" target="_blank" style="color:#7413DC;">Terms &amp; Conditions</a> <span class="nms-req">*</span>
+                    </label>
+                </div>
+                <?php endif; ?>
+
                 <button type="submit" class="nms-btn nms-btn-primary nms-btn-lg" id="nms-submit-btn">
                     Submit Booking Request
                 </button>

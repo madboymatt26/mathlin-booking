@@ -253,6 +253,49 @@ rest:
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="reminder_hours">Email reminder</label></th>
+                    <td>
+                        <input type="number" id="reminder_hours" name="reminder_hours"
+                               value="<?php echo esc_attr( get_option( 'mbs_reminder_hours', 24 ) ); ?>"
+                               min="0" max="168" style="width:80px"> hours before
+                        <p class="description">
+                            Send a reminder email to the booker this many hours before their booking.<br>
+                            <strong>0</strong> = reminders disabled &bull;
+                            <strong>24</strong> = 1 day before &bull;
+                            <strong>48</strong> = 2 days before.
+                            Runs daily at 7am via WP-Cron.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="terms_page_id">Terms &amp; Conditions page</label></th>
+                    <td>
+                        <?php
+                        wp_dropdown_pages( array(
+                            'name'              => 'terms_page_id',
+                            'id'                => 'terms_page_id',
+                            'selected'          => get_option( 'mbs_terms_page_id', 0 ),
+                            'show_option_none'  => '— No T&Cs required —',
+                            'option_none_value' => '0',
+                        ) );
+                        ?>
+                        <p class="description">
+                            If set, a "I agree to the Terms &amp; Conditions" checkbox will appear on the booking form.<br>
+                            Create a WordPress page with your T&amp;Cs and select it here.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>iCal Feed URL</th>
+                    <td>
+                        <code><?php echo esc_html( rest_url( 'mathlin/v1/bookings/ical' ) ); ?></code>
+                        <p class="description">
+                            Subscribe to this URL in Google Calendar, Apple Calendar, or Outlook to see all confirmed bookings.<br>
+                            <strong>Google Calendar:</strong> Other calendars → From URL → paste the URL above.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th>Database Table</th>
                     <td><code><?php global $wpdb; echo esc_html( $wpdb->prefix . MBS_TABLE ); ?></code></td>
                 </tr>

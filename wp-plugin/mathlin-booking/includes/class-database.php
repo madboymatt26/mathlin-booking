@@ -31,6 +31,7 @@ class MBS_Database {
             amount          DECIMAL(8,2) NOT NULL DEFAULT 0.00,
             invoice_number  VARCHAR(30)  DEFAULT '',
             ha_notified     TINYINT(1)   NOT NULL DEFAULT 0,
+            reminder_sent   TINYINT(1)   NOT NULL DEFAULT 0,
             series_id       VARCHAR(20)  DEFAULT NULL,
             admin_notes     TEXT         DEFAULT '',
             created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -103,6 +104,12 @@ class MBS_Database {
         $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'admin_notes'" );
         if ( empty( $col ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN admin_notes TEXT DEFAULT '' AFTER notes" );
+        }
+
+        // Add reminder_sent column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'reminder_sent'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN reminder_sent TINYINT(1) NOT NULL DEFAULT 0 AFTER ha_notified" );
         }
     }
 

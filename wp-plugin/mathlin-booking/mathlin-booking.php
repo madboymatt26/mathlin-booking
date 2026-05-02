@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     1.8.0
+ * Version:     1.9.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '1.8.0' );
+define( 'MBS_VERSION',    '1.9.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -25,12 +25,15 @@ require_once MBS_PLUGIN_DIR . 'includes/class-rest-api.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-homeassistant.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-blocked-dates.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-updater.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-reminders.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-ical.php';
 require_once MBS_PLUGIN_DIR . 'admin/class-admin.php';
 require_once MBS_PLUGIN_DIR . 'public/class-public.php';
 
 // ── Activation / Deactivation ──────────────────────────────────────────────────
 register_activation_hook( __FILE__, array( 'MBS_Database', 'create_tables' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Database', 'on_deactivate' ) );
+register_deactivation_hook( __FILE__, array( 'MBS_Reminders', 'deactivate' ) );
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 add_action( 'plugins_loaded', 'mbs_init' );
@@ -45,9 +48,11 @@ function mbs_init() {
     $public  = new MBS_Public();
     $api     = new MBS_Rest_API();
     $updater = new MBS_Updater();
+    $reminders = new MBS_Reminders();
 
     $admin->init();
     $public->init();
     $api->init();
     $updater->init();
+    $reminders->init();
 }

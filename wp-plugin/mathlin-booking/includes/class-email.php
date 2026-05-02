@@ -49,6 +49,7 @@ class MBS_Email {
         $bank = MBS_Bookings::get_bank_details();
         $body   .= '<p>Payment is due within ' . $bank['payment_days'] . ' days. Please transfer to:<br>Sort Code: <strong>' . esc_html( $bank['sort_code'] ) . '</strong> | Account: <strong>' . esc_html( $bank['account_number'] ) . '</strong> | Ref: <strong>' . esc_html( $booking->invoice_number ) . '</strong></p>';
         $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a>.</p>';
+        $body   .= self::ical_button( $booking );
         $body   .= self::footer();
 
         // Generate invoice HTML file as attachment
@@ -86,7 +87,27 @@ class MBS_Email {
         $body   .= '<p>We\'ve received your payment for the following booking. Thank you!</p>';
         $body   .= self::booking_table_obj( $booking );
         $body   .= '<p>Your booking is fully confirmed and paid. We look forward to seeing you!</p>';
+        $body   .= self::ical_button( $booking );
         $body   .= '<p>If you have any questions, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a>.</p>';
+        $body   .= self::footer();
+        self::send( $booking->email, $subject, $body );
+    }
+
+    /**
+     * Send a reminder email before a booking.
+     */
+    public static function notify_reminder( $booking ) {
+        $admin_email = self::admin_email();
+        $subject = 'Reminder: Your booking is coming up – ' . $booking->ref;
+        $body    = self::header();
+        $body   .= '<h2 style="color:#7413DC;">Booking Reminder</h2>';
+        $body   .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
+        $body   .= '<p>Just a friendly reminder that your booking is coming up soon:</p>';
+        $body   .= self::booking_table_obj( $booking );
+        $body   .= self::ical_button( $booking );
+        $body   .= '<p><strong>Location:</strong> Needham Market Scout Hall, Crown St, Needham Market, IP6 8RY</p>';
+        $body   .= '<p>If you need to make any changes or cancel, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a> or call 01449 797577.</p>';
+        $body   .= '<p>We look forward to seeing you!</p>';
         $body   .= self::footer();
         self::send( $booking->email, $subject, $body );
     }
@@ -142,6 +163,16 @@ class MBS_Email {
             $html .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;width:35%;border-bottom:1px solid #e0d0f0;">' . $label . '</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . $value . '</td></tr>';
         }
         return $html . '</table>';
+    }
+
+    /**
+     * Generate an "Add to Calendar" button for emails.
+     */
+    private static function ical_button( $booking ) {
+        $ical_url = rest_url( 'mathlin/v1/bookings/' . $booking->ref . '/ical' );
+        return '<p style="margin-top:16px;">' .
+            '<a href="' . esc_url( $ical_url ) . '" style="background:#7413DC;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;">📅 Add to Calendar</a>' .
+            '</p>';
     }
 
     private static function header() {

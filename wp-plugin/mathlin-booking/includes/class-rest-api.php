@@ -58,6 +58,20 @@ class MBS_Rest_API {
             'permission_callback' => '__return_true',
         ) );
 
+        // ── Public: iCal download for a single booking ──────────────────────────
+        register_rest_route( self::NAMESPACE, '/bookings/(?P<ref>[A-Z0-9\-]+)/ical', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'get_ical' ),
+            'permission_callback' => '__return_true',
+        ) );
+
+        // ── Public: iCal feed for all upcoming bookings ───────────────────────
+        register_rest_route( self::NAMESPACE, '/bookings/ical', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'get_ical_feed' ),
+            'permission_callback' => '__return_true',
+        ) );
+
         register_rest_route( self::NAMESPACE, '/bookings', array(
             'methods'             => 'GET',
             'callback'            => array( $this, 'get_all' ),
@@ -145,5 +159,31 @@ class MBS_Rest_API {
 
     public function admin_permission() {
         return current_user_can( 'manage_options' );
+    }
+
+    // ── iCal endpoints ─────────────────────────────────────────────────────────
+
+    public function get_ical( WP_REST_Request $request ) {
+        $ref     = strtoupper( sanitize_text_field( $request->get_param( 'ref' ) ) );
+        $booking = MBS_Bookings::get( $ref );
+        if ( ! $booking ) {
+            return new WP_Error( 'not_found', 'Booking not found', array( 'status' => 404 ) );
+        }
+
+        $ics = MBS_ICal::generate( $booking );
+
+        $response = new WP_REST_Response( $ics );
+        $response->header( 'Content-Type', 'text/calendar; charset=utf-8' );
+        $response->header( 'Content-Disposition', 'attachment; filename="booking-' . $ref . '.ics"' );
+        return $response;
+    }
+
+    public function get_ical_feed( WP_REST_Request $request ) {
+        $ics = MBS_ICal::generate_feed();
+
+        $response = new WP_REST_Response( $ics );
+        $response->header( 'Content-Type', 'text/calendar; charset=utf-8' );
+        $response->header( 'Content-Disposition', 'inline; filename="scout-hall-bookings.ics"' );
+        return $response;
     }
 }

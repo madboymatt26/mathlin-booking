@@ -67,6 +67,12 @@ class MBS_Public {
             wp_send_json_error( array( 'message' => 'Please enter a valid email address.' ) );
         }
 
+        // Validate T&Cs acceptance
+        $terms_page_id = (int) get_option( 'mbs_terms_page_id', 0 );
+        if ( $terms_page_id && get_post( $terms_page_id ) && empty( $_POST['accept_terms'] ) ) {
+            wp_send_json_error( array( 'message' => 'You must agree to the Terms & Conditions to make a booking.' ) );
+        }
+
         // Validate date — must be at least min_notice_days from today
         $date         = sanitize_text_field( $_POST['booking_date'] );
         $notice_days  = (int) get_option( 'mbs_min_notice_days', 1 );

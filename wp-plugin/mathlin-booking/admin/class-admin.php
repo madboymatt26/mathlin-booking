@@ -215,6 +215,15 @@ class MBS_Admin {
         update_option( 'mbs_min_notice_days', $notice_days );
         update_option( 'mbs_kitchen_price',   $kitchen_price );
 
+        // Reminder hours
+        $reminder_hours = absint( $_POST['reminder_hours'] ?? 24 );
+        $reminder_hours = max( 0, min( 168, $reminder_hours ) );
+        update_option( 'mbs_reminder_hours', $reminder_hours );
+
+        // Terms & Conditions page
+        $terms_page_id = absint( $_POST['terms_page_id'] ?? 0 );
+        update_option( 'mbs_terms_page_id', $terms_page_id );
+
         // Save admin email if provided
         if ( ! empty( $admin_email ) ) {
             update_option( 'mbs_admin_email', $admin_email );
