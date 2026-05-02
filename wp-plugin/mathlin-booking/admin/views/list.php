@@ -45,6 +45,12 @@
             <?php endif; ?>
         </form>
         <div class="nms-filters-right">
+            <a href="<?php echo esc_url( admin_url( 'admin-ajax.php?action=mbs_export_csv&nonce=' . wp_create_nonce( 'mbs_admin_nonce' ) .
+                ( $status ? '&status=' . urlencode( $status ) : '' ) .
+                ( $search ? '&search=' . urlencode( $search ) : '' )
+            ) ); ?>" class="button" title="Download bookings as CSV spreadsheet">
+                📊 Export CSV
+            </a>
             <button id="nms-archive-past" class="button" title="Move all past confirmed/cancelled bookings to archive">
                 📦 Archive Past Bookings
             </button>
