@@ -64,7 +64,8 @@ $kitchen_price = MBS_Bookings::get_kitchen_price();
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div><label class="nms-edit-label">Date</label><input type="date" id="nms-edit-date" value="<?php echo esc_attr( $booking->booking_date ); ?>" style="width:100%;"></div>
+                    <div><label class="nms-edit-label">Start Date</label><input type="date" id="nms-edit-date" value="<?php echo esc_attr( $booking->booking_date ); ?>" style="width:100%;"></div>
+                    <div><label class="nms-edit-label">End Date</label><input type="date" id="nms-edit-date-end" value="<?php echo esc_attr( $booking->booking_date_end ?: $booking->booking_date ); ?>" style="width:100%;"><small class="nms-muted">Same as start for single day</small></div>
                     <div><label class="nms-edit-label">Start Time</label><input type="time" id="nms-edit-start" value="<?php echo esc_attr( $booking->start_time ); ?>" style="width:100%;"></div>
                     <div><label class="nms-edit-label">End Time</label><input type="time" id="nms-edit-end" value="<?php echo esc_attr( $booking->end_time ); ?>" style="width:100%;"></div>
                     <div><label class="nms-edit-label">Attendees</label><input type="number" id="nms-edit-attendees" value="<?php echo esc_attr( $booking->attendees ); ?>" min="1" style="width:100%;"></div>
@@ -220,7 +221,7 @@ jQuery(function($) {
     });
 
     // Live cost recalculation
-    $('#nms-edit-space, #nms-edit-start, #nms-edit-end, #nms-edit-kitchen, #nms-edit-allday, #nms-edit-scout, #nms-edit-date').on('change', recalcEditCost);
+    $('#nms-edit-space, #nms-edit-start, #nms-edit-end, #nms-edit-kitchen, #nms-edit-allday, #nms-edit-scout, #nms-edit-date, #nms-edit-date-end').on('change', recalcEditCost);
 
     function recalcEditCost() {
         var space   = $('#nms-edit-space').val();
@@ -231,6 +232,15 @@ jQuery(function($) {
         var scout   = $('#nms-edit-scout').val() === '1';
         var info    = spacesData[space];
 
+        // Calculate number of days for multi-day bookings
+        var dateFrom = $('#nms-edit-date').val();
+        var dateTo   = $('#nms-edit-date-end').val() || dateFrom;
+        var numDays  = 1;
+        if (dateFrom && dateTo) {
+            var diff = (new Date(dateTo + 'T00:00:00') - new Date(dateFrom + 'T00:00:00')) / 86400000;
+            numDays = Math.max(1, Math.round(diff) + 1);
+        }
+
         var cost = 0;
         if (scout) {
             cost = 0;
@@ -238,7 +248,7 @@ jQuery(function($) {
             var rateHourly = parseFloat(info.rate_hourly || 0);
             var rateDaily  = parseFloat(info.rate_daily || 0);
             if (allDay) {
-                cost = rateDaily;
+                cost = rateDaily * numDays;
             } else if (start && end) {
                 var sh = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
                 var eh = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
@@ -246,6 +256,13 @@ jQuery(function($) {
                 cost = hrs * rateHourly;
             }
             if (kitchen) cost += kitchenPrice;
+        }
+
+        // Toggle time fields based on all-day
+        if (allDay) {
+            $('#nms-edit-start, #nms-edit-end').css('opacity', '0.4').prop('disabled', true);
+        } else {
+            $('#nms-edit-start, #nms-edit-end').css('opacity', '1').prop('disabled', false);
         }
 
         $('#nms-edit-new-amount').text('£' + cost.toFixed(2));
@@ -280,6 +297,7 @@ jQuery(function($) {
             phone:        $('#nms-edit-phone').val(),
             space:        $('#nms-edit-space').val(),
             booking_date: $('#nms-edit-date').val(),
+            booking_date_end: $('#nms-edit-date-end').val(),
             start_time:   $('#nms-edit-start').val(),
             end_time:     $('#nms-edit-end').val(),
             attendees:    $('#nms-edit-attendees').val(),

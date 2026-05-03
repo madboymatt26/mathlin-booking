@@ -548,16 +548,20 @@ class MBS_Admin {
 
         $old_amount = (float) $booking->amount;
 
-        // Recalculate cost
+        // Recalculate cost with multi-day support
         $scout_use = ! empty( $_POST['scout_use'] );
         $all_day   = ! empty( $_POST['all_day'] );
+        $date_from = sanitize_text_field( $_POST['booking_date'] );
+        $date_to   = sanitize_text_field( $_POST['booking_date_end'] ?? $date_from );
+        $num_days  = max( 1, (int) round( ( strtotime( $date_to ) - strtotime( $date_from ) ) / 86400 ) + 1 );
+
         $new_amount = MBS_Bookings::calculate_cost(
             sanitize_text_field( $_POST['space'] ),
             sanitize_text_field( $_POST['start_time'] ?? '' ),
             sanitize_text_field( $_POST['end_time'] ?? '' ),
             ! empty( $_POST['kitchen'] ),
             $all_day,
-            1,
+            $num_days,
             $scout_use
         );
 
@@ -591,6 +595,7 @@ class MBS_Admin {
             'phone'        => sanitize_text_field( $_POST['phone'] ),
             'space'        => sanitize_text_field( $_POST['space'] ),
             'booking_date' => sanitize_text_field( $_POST['booking_date'] ),
+            'booking_date_end' => $date_to,
             'start_time'   => ! empty( $_POST['start_time'] ) ? sanitize_text_field( $_POST['start_time'] ) : null,
             'end_time'     => ! empty( $_POST['end_time'] )   ? sanitize_text_field( $_POST['end_time'] )   : null,
             'attendees'    => absint( $_POST['attendees'] ),
