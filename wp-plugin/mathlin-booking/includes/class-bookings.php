@@ -262,7 +262,7 @@ class MBS_Bookings {
         global $wpdb;
         $table   = $wpdb->prefix . MBS_TABLE;
         $from    = sprintf( '%04d-%02d-01', $year, $month );
-        $to      = date( 'Y-m-t', strtotime( $from ) );
+        $to      = wp_date( 'Y-m-t', strtotime( $from ) );
 
         // UX-005: Include multi-day bookings that span into this month
         $results = $wpdb->get_results( $wpdb->prepare(
@@ -283,7 +283,7 @@ class MBS_Bookings {
             $end   = $row->booking_date_end ? min( strtotime( $to ), strtotime( $row->booking_date_end ) ) : $start;
 
             for ( $d = $start; $d <= $end; $d += 86400 ) {
-                $date_str = date( 'Y-m-d', $d );
+                $date_str = wp_date( 'Y-m-d', $d );
                 $map[ $date_str ] = ( $map[ $date_str ] ?? 0 ) + (int) $row->count;
             }
         }
@@ -445,7 +445,7 @@ class MBS_Bookings {
         $count = 0;
 
         while ( $current <= $end && $count < $max_occurrences ) {
-            $date_str = date( 'Y-m-d', $current );
+            $date_str = wp_date( 'Y-m-d', $current );
 
             // Check for conflicts on each date
             $all_day = ! empty( $data['all_day'] );
@@ -580,7 +580,7 @@ class MBS_Bookings {
     public static function archive_past_bookings() {
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
-        $today = date( 'Y-m-d' );
+        $today = wp_date( 'Y-m-d' );
         return $wpdb->query( $wpdb->prepare(
             "UPDATE {$table} SET status = 'archived' WHERE booking_date < %s AND status IN ('confirmed', 'cancelled')",
             $today

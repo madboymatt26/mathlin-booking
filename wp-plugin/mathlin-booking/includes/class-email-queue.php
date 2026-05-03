@@ -109,7 +109,7 @@ class MBS_Email_Queue {
                 } else {
                     // Exponential backoff: 1hr, 4hr, 16hr
                     $delay_hours = pow( 4, $attempts - 1 );
-                    $next_retry  = date( 'Y-m-d H:i:s', strtotime( "+{$delay_hours} hours" ) );
+                    $next_retry  = wp_date( 'Y-m-d H:i:s', strtotime( "+{$delay_hours} hours" ) );
                     $wpdb->update( $table,
                         array( 'attempts' => $attempts, 'next_retry' => $next_retry ),
                         array( 'id' => $email->id )
@@ -152,7 +152,7 @@ class MBS_Email_Queue {
     public static function cleanup() {
         global $wpdb;
         $table = self::table();
-        $cutoff = date( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
+        $cutoff = wp_date( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
         $wpdb->query( $wpdb->prepare(
             "DELETE FROM {$table} WHERE status IN ('sent', 'failed') AND created_at < %s",
             $cutoff

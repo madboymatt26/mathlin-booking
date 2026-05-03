@@ -40,8 +40,8 @@ class MBS_Reminders {
 
         // Find confirmed/paid bookings happening within the reminder window
         // that haven't already been sent a reminder
-        $reminder_date = date( 'Y-m-d', strtotime( "+{$hours_before} hours" ) );
-        $today         = date( 'Y-m-d' );
+        $reminder_date = wp_date( 'Y-m-d', strtotime( "+{$hours_before} hours" ) );
+        $today         = wp_date( 'Y-m-d' );
 
         $bookings = $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table}

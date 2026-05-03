@@ -237,6 +237,27 @@
 @media (max-width: 768px) {
     .nms-calendar-layout { grid-template-columns: 1fr; }
     .nms-form-row        { grid-template-columns: 1fr; }
+
+    /* Ensure full-width on tablets */
+    .nms-wrap { padding: 0 0.5rem; }
+    .nms-form-section { padding: 1.25rem; }
+    .nms-section-title { font-size: 1.4rem; }
+
+    /* Cost estimate section */
+    .nms-cost-row { font-size: 0.85rem; }
+    .nms-cost-total { font-size: 0.95rem; }
+
+    /* Buttons */
+    .nms-btn-lg { padding: 0.75rem 1.5rem; font-size: 0.9rem; width: 100%; text-align: center; }
+    .nms-form-actions { flex-direction: column; }
+
+    /* Calendar sidebar */
+    .nms-calendar-sidebar { margin-top: 0; }
+
+    /* Hirer portal login/register */
+    .nms-wrap > div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -286,4 +307,29 @@
     }
 
     .nms-section-title { font-size: 1.3rem; }
+
+    /* Form inputs larger touch targets */
+    .nms-form-group input,
+    .nms-form-group select,
+    .nms-form-group textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+        padding: 0.7rem 0.875rem;
+    }
+
+    /* Cost section compact */
+    .nms-cost-row { font-size: 0.8rem; padding: 0.4rem 0; }
+    .nms-cost-total { font-size: 0.9rem; }
+    .nms-cost-note { font-size: 0.7rem; }
+
+    /* Full-width buttons */
+    .nms-btn { width: 100%; text-align: center; }
+    .nms-form-actions { padding: 0.25rem 0; }
+
+    /* Hirer dashboard stats */
+    .nms-wrap > div[style*="grid-template-columns:repeat"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Status lookup form */
+    .nms-form-section { padding: 1rem; }
 }

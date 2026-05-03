@@ -25,6 +25,10 @@
 
         <form id="nms-booking-form" class="nms-form" novalidate>
             <?php wp_nonce_field( 'mbs_public_nonce', 'nonce' ); ?>
+            <!-- Honeypot: hidden from humans, filled by bots -->
+            <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                <input type="text" name="mbs_website_url" tabindex="-1" autocomplete="off" value="">
+            </div>
 
             <?php
             // Pre-fill for logged-in hirers

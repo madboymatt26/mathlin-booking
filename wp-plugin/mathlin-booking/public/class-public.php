@@ -45,7 +45,7 @@ class MBS_Public {
                 'spaces'          => MBS_Bookings::get_spaces(),
                 'kitchen_price'   => MBS_Bookings::get_kitchen_price(),
                 'min_notice_days' => $notice_days,
-                'min_date'        => date( 'Y-m-d', strtotime( "+{$notice_days} days" ) ),
+                'min_date'        => wp_date( 'Y-m-d', strtotime( "+{$notice_days} days" ) ),
                 'blocked_dates'   => self::get_blocked_dates_for_frontend(),
                 'is_logged_in'    => is_user_logged_in(),
                 'portal_url'      => $portal_url,
@@ -85,6 +85,11 @@ class MBS_Public {
     public function ajax_submit() {
         check_ajax_referer( 'mbs_public_nonce', 'nonce' );
 
+        // Honeypot: if the hidden field is filled, it's a bot — reject silently
+        if ( ! empty( $_POST['mbs_website_url'] ) ) {
+            wp_send_json_success( array( 'ref' => 'MBS-000000', 'message' => 'Booking submitted.' ) ); // Fake success to not alert the bot
+        }
+
         $required = array( 'name', 'email', 'phone', 'address', 'space', 'booking_date', 'attendees', 'purpose' );
         foreach ( $required as $field ) {
             if ( empty( $_POST[ $field ] ) ) {
@@ -106,7 +111,7 @@ class MBS_Public {
         // Validate date — must be at least min_notice_days from today
         $date         = sanitize_text_field( $_POST['booking_date'] );
         $notice_days  = (int) get_option( 'mbs_min_notice_days', 1 );
-        $min_date     = date( 'Y-m-d', strtotime( "+{$notice_days} days" ) );
+        $min_date     = wp_date( 'Y-m-d', strtotime( "+{$notice_days} days" ) );
 
         if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
             wp_send_json_error( array( 'message' => 'Please select a valid date.' ) );
@@ -156,7 +161,7 @@ class MBS_Public {
         $check_date = strtotime( $date );
         $check_end_ts = strtotime( $check_end );
         while ( $check_date <= $check_end_ts ) {
-            $check_str = date( 'Y-m-d', $check_date );
+            $check_str = wp_date( 'Y-m-d', $check_date );
             $blocked = MBS_Blocked_Dates::is_blocked( $check_str, $space );
             if ( $blocked ) {
                 $reason_msg = $blocked->reason ? ' Reason: ' . $blocked->reason : '';
@@ -170,7 +175,7 @@ class MBS_Public {
         $check_date = strtotime( $date );
         $check_end_ts = strtotime( $check_end );
         while ( $check_date <= $check_end_ts ) {
-            $check_str = date( 'Y-m-d', $check_date );
+            $check_str = wp_date( 'Y-m-d', $check_date );
             $conflicts = MBS_Bookings::check_conflicts(
                 $space,
                 $check_str,
@@ -252,8 +257,8 @@ class MBS_Public {
     // ── AJAX: get calendar data for a month ────────────────────────────────────
     public function ajax_calendar() {
         check_ajax_referer( 'mbs_public_nonce', 'nonce' );
-        $year  = absint( $_POST['year']  ?? date('Y') );
-        $month = absint( $_POST['month'] ?? date('n') );
+        $year  = absint( $_POST['year']  ?? wp_date('Y') );
+        $month = absint( $_POST['month'] ?? wp_date('n') );
         $dates = MBS_Bookings::get_booked_dates( $year, $month );
         wp_send_json_success( $dates );
     }
@@ -345,8 +350,8 @@ class MBS_Public {
     private static function get_blocked_dates_for_frontend() {
         // PERF-003: Only load 2 months of blocked dates (current + next)
         // Additional months loaded via AJAX when user navigates calendar
-        $from = date( 'Y-m-01' );
-        $to   = date( 'Y-m-t', strtotime( '+1 month' ) );
+        $from = wp_date( 'Y-m-01' );
+        $to   = wp_date( 'Y-m-t', strtotime( '+1 month' ) );
 
         $entries = MBS_Blocked_Dates::get_for_range( $from, $to );
         $blocked = array();
@@ -356,7 +361,7 @@ class MBS_Public {
             $end   = min( strtotime( $to ), strtotime( $entry->date_to ) );
 
             for ( $d = $start; $d <= $end; $d += 86400 ) {
-                $date_str = date( 'Y-m-d', $d );
+                $date_str = wp_date( 'Y-m-d', $d );
                 if ( ! isset( $blocked[ $date_str ] ) ) {
                     $blocked[ $date_str ] = array();
                 }

@@ -45,7 +45,7 @@ class MBS_Payment_Chaser {
 
         global $wpdb;
         $table    = $wpdb->prefix . MBS_TABLE;
-        $overdue  = date( 'Y-m-d H:i:s', strtotime( "-{$payment_days} days" ) );
+        $overdue  = wp_date( 'Y-m-d H:i:s', strtotime( "-{$payment_days} days" ) );
 
         $bookings = $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table}
@@ -57,7 +57,7 @@ class MBS_Payment_Chaser {
              LIMIT 20",
             $overdue,
             $max_chases,
-            date( 'Y-m-d H:i:s', strtotime( "-{$chase_interval} days" ) )
+            wp_date( 'Y-m-d H:i:s', strtotime( "-{$chase_interval} days" ) )
         ) );
 
         if ( empty( $bookings ) ) return;

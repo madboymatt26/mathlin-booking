@@ -2,7 +2,7 @@
 
 A comprehensive WordPress venue booking plugin built for Needham Market Scout Group, with Home Assistant integration.
 
-**Current Version:** 2.6.1+  
+**Current Version:** 2.9.0  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -23,6 +23,8 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 - Terms & Conditions checkbox
 - Public/private event visibility toggle
 - Scout Use (free) bookings for volunteers
+- Honeypot spam prevention on booking form
+- Mobile-optimised responsive design
 
 ### Customer Accounts (Hirer Portal)
 - Self-service registration and login (`[mathlin_portal]`)
@@ -109,7 +111,27 @@ Base: `/wp-json/mathlin/v1/`
 
 ## Changelog
 
-### v2.6.1 (Latest)
+### v2.9.0 (Latest)
+- **Security:** All date/time calculations now use WordPress timezone (wp_date) instead of server UTC
+- **Security:** Honeypot spam prevention on public booking form
+- **Mobile:** Comprehensive responsive CSS for phones and tablets
+- **Mobile:** iOS zoom prevention on form inputs (font-size: 16px)
+- **Mobile:** Full-width buttons and single-column layout on small screens
+
+### v2.8.1
+- **New:** Booking Manager role for volunteers
+- **Security:** Delete button restricted to Administrators only
+- **UX:** Dashboard alerts for failed emails and pending requests
+
+### v2.8.0
+- **New:** Bulk actions on admin bookings list (confirm, pay, cancel, archive)
+- State transition validation prevents invalid bulk operations
+
+### v2.7.0
+- **New:** Custom admin price override
+- **Docs:** Complete README rewrite + AI-CONTEXT.md for LLM consumption
+
+### v2.6.1
 - **Fix:** Overnight booking (22:00–02:00) spanning 2 calendar dates no longer double-counts days
 - Rule: if overnight AND date span = 2, treat as 1 continuous block
 

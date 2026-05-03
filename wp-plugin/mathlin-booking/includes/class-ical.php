@@ -80,7 +80,7 @@ class MBS_ICal {
     public static function generate_feed() {
         $bookings = MBS_Bookings::get_all( array(
             'status'    => 'confirmed',
-            'date_from' => date( 'Y-m-d' ),
+            'date_from' => wp_date( 'Y-m-d' ),
             'orderby'   => 'booking_date',
             'order'     => 'ASC',
             'limit'     => 200,
@@ -89,7 +89,7 @@ class MBS_ICal {
         // Also include paid bookings
         $paid = MBS_Bookings::get_all( array(
             'status'    => 'paid',
-            'date_from' => date( 'Y-m-d' ),
+            'date_from' => wp_date( 'Y-m-d' ),
             'orderby'   => 'booking_date',
             'order'     => 'ASC',
             'limit'     => 200,

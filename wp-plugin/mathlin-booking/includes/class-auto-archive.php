@@ -30,7 +30,7 @@ class MBS_Auto_Archive {
 
         global $wpdb;
         $table     = $wpdb->prefix . MBS_TABLE;
-        $threshold = date( 'Y-m-d', strtotime( "-{$days_after} days" ) );
+        $threshold = wp_date( 'Y-m-d', strtotime( "-{$days_after} days" ) );
 
         // Archive confirmed, cancelled, and paid bookings where the booking date
         // (or end date for multi-day) has passed the threshold

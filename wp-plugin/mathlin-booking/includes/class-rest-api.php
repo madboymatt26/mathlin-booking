@@ -47,8 +47,8 @@ class MBS_Rest_API {
             'callback'            => array( $this, 'get_calendar' ),
             'permission_callback' => '__return_true',
             'args'                => array(
-                'year'  => array( 'default' => (int) date('Y'), 'sanitize_callback' => 'absint' ),
-                'month' => array( 'default' => (int) date('n'), 'sanitize_callback' => 'absint' ),
+                'year'  => array( 'default' => (int) wp_date('Y'), 'sanitize_callback' => 'absint' ),
+                'month' => array( 'default' => (int) wp_date('n'), 'sanitize_callback' => 'absint' ),
             ),
         ) );
 

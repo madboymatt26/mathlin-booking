@@ -22,8 +22,8 @@ class MBS_Dashboard_Widget {
     }
 
     public function render_widget() {
-        $today    = date( 'Y-m-d' );
-        $tomorrow = date( 'Y-m-d', strtotime( '+1 day' ) );
+        $today    = wp_date( 'Y-m-d' );
+        $tomorrow = wp_date( 'Y-m-d', strtotime( '+1 day' ) );
 
         // Today's bookings
         $todays = MBS_Bookings::get_by_date( $today );

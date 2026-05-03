@@ -172,12 +172,15 @@ Admins can override scout_use when editing a booking (no email check — intenti
 ## Security Model
 
 - **Nonces:** All AJAX calls use WordPress nonces (`mbs_admin_nonce` for admin, `mbs_public_nonce` for public)
-- **Capability checks:** All admin AJAX handlers check `current_user_can('manage_options')`
+- **Capability checks:** Admin AJAX handlers check `mbs_manage_bookings` (Booking Managers + Admins). Settings/config handlers check `manage_options` (Admins only). Delete checks `manage_options` (Admins only).
+- **Roles:** `mbs_hirer` (public bookers), `mbs_booking_manager` (volunteers), `administrator` (full access)
 - **Payment tokens:** Payment and modification URLs use `modification_token` (per-booking, session-independent) verified with `hash_equals()`
 - **Race conditions:** Booking creation uses `START TRANSACTION` / `COMMIT` with conflict re-check inside the transaction
 - **Rate limiting:** Hirer registration limited to 5 per IP per hour via transients
+- **Honeypot:** Hidden form field `mbs_website_url` — if filled (by bots), submission silently returns fake success
 - **WooCommerce price:** Always re-read from database in `set_cart_item_price()`, never from cart session
 - **Booking lookup:** Requires both reference AND email to prevent enumeration
+- **Timezone:** All date calculations use `wp_date()` / `current_time()` to respect WordPress timezone settings (BST/GMT safe)
 
 ---
 
@@ -224,6 +227,9 @@ Separate codebase in `ha-integration/custom_components/mathlin_booking/`.
 - **Booking reference format:** `MBS-XXXXXX` (base36)
 - **Invoice format:** `INV-MBS-XXXXXX`
 - **Series format:** `SER-XXXXXX`
+- **Date functions:** ALWAYS use `wp_date()` instead of `date()` for "today" calculations. This ensures BST/GMT correctness.
+- **Capability for booking management:** `mbs_manage_bookings` (not `manage_options`)
+- **Capability for settings/delete:** `manage_options` (admin only)
 
 ---
 

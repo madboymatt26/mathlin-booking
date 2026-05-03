@@ -56,8 +56,8 @@ class MBS_HomeAssistant {
     public static function get_upcoming_for_ha( $days_ahead = 30 ) {
         $bookings = MBS_Bookings::get_all( array(
             'status'    => 'confirmed',
-            'date_from' => date( 'Y-m-d' ),
-            'date_to'   => date( 'Y-m-d', strtotime( "+{$days_ahead} days" ) ),
+            'date_from' => wp_date( 'Y-m-d' ),
+            'date_to'   => wp_date( 'Y-m-d', strtotime( "+{$days_ahead} days" ) ),
             'orderby'   => 'booking_date',
             'order'     => 'ASC',
             'limit'     => 50,
@@ -81,7 +81,7 @@ class MBS_HomeAssistant {
     }
 
     public static function get_todays_bookings() {
-        $bookings = MBS_Bookings::get_by_date( date( 'Y-m-d' ) );
+        $bookings = MBS_Bookings::get_by_date( wp_date( 'Y-m-d' ) );
         $result   = array();
         foreach ( $bookings as $b ) {
             $result[] = array(

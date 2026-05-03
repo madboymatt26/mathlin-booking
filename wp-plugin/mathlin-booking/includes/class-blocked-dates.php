@@ -39,7 +39,7 @@ class MBS_Blocked_Dates {
     public static function clear_expired() {
         global $wpdb;
         $table = self::table();
-        $today = date( 'Y-m-d' );
+        $today = wp_date( 'Y-m-d' );
         return $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE date_to < %s", $today ) );
     }
 
@@ -92,7 +92,7 @@ class MBS_Blocked_Dates {
      */
     public static function get_for_month( $year, $month ) {
         $from = sprintf( '%04d-%02d-01', $year, $month );
-        $to   = date( 'Y-m-t', strtotime( $from ) );
+        $to   = wp_date( 'Y-m-t', strtotime( $from ) );
 
         $entries = self::get_for_range( $from, $to );
         $blocked = array();
@@ -102,7 +102,7 @@ class MBS_Blocked_Dates {
             $end   = min( strtotime( $to ), strtotime( $entry->date_to ) );
 
             for ( $d = $start; $d <= $end; $d += 86400 ) {
-                $date_str = date( 'Y-m-d', $d );
+                $date_str = wp_date( 'Y-m-d', $d );
                 $blocked[ $date_str ][] = array(
                     'space'  => $entry->space ?: 'All spaces',
                     'reason' => $entry->reason,
