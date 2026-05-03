@@ -15,11 +15,12 @@ $spaces  = MBS_Bookings::get_spaces();
             <p class="nms-muted"><?php echo esc_html( $email ); ?></p>
         </div>
         <div style="display:flex;gap:0.5rem;">
-            <a href="<?php
-                // Find the booking page
-                $pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 's' => 'mathlin_booking', 'numberposts' => 1 ) );
-                echo $pages ? esc_url( get_permalink( $pages[0]->ID ) ) : '#';
-            ?>" class="nms-btn nms-btn-primary">+ New Booking</a>
+            <?php
+                $bp = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 's' => 'mathlin_booking', 'numberposts' => 1 ) );
+                if ( $bp ) :
+            ?>
+            <a href="<?php echo esc_url( get_permalink( $bp[0]->ID ) ); ?>" class="nms-btn nms-btn-primary">+ New Booking</a>
+            <?php endif; ?>
             <a href="<?php echo esc_url( wp_logout_url( get_permalink() ) ); ?>" class="nms-btn nms-btn-sm" style="background:#f3f4f6;color:#6b7280;border-color:#e5e7eb;">Log Out</a>
         </div>
     </div>

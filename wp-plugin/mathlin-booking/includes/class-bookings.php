@@ -58,8 +58,11 @@ class MBS_Bookings {
             $rate_hourly = isset( $info['rate_hourly'] ) ? (float) $info['rate_hourly'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
             $start = strtotime( $start_time );
             $end   = strtotime( $end_time );
+            // QA-001: Handle bookings spanning midnight (end time next day)
+            if ( $end <= $start ) $end += 86400;
             $hours = ceil( max( 0, ( $end - $start ) / 3600 ) );
-            $cost  = $hours * $rate_hourly;
+            // QA-003: Multi-day hourly bookings multiply by number of days
+            $cost  = $hours * $rate_hourly * max( 1, $num_days );
         }
 
         if ( $kitchen ) $cost += self::get_kitchen_price();

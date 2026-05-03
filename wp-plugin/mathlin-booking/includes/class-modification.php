@@ -136,6 +136,29 @@ class MBS_Modification {
                 }
 
                 if ( ! empty( $update ) ) {
+                    // QA-004: Check for conflicts before applying changes
+                    $check_space = $update['space'] ?? $booking->space;
+                    $check_date  = $update['booking_date'] ?? $booking->booking_date;
+                    $check_start = $update['start_time'] ?? $booking->start_time;
+                    $check_end   = $update['end_time'] ?? $booking->end_time;
+                    $check_allday = isset( $update['all_day'] ) ? (bool) $update['all_day'] : (bool) $booking->all_day;
+
+                    if ( $check_space !== $booking->space || $check_date !== $booking->booking_date ||
+                         $check_start !== $booking->start_time || $check_end !== $booking->end_time ) {
+                        $conflicts = MBS_Bookings::check_conflicts(
+                            $check_space, $check_date,
+                            $check_allday ? null : $check_start,
+                            $check_allday ? null : $check_end,
+                            $check_allday, $request->booking_ref
+                        );
+                        if ( ! empty( $conflicts ) ) {
+                            self::update_request_status( $request_id, 'rejected', 'Conflicts with existing booking: ' . MBS_Bookings::format_conflict_message( $conflicts ) );
+                            self::notify_booker_rejected( $booking, 'modify', 'Your requested changes conflict with an existing booking.' );
+                            MBS_Audit_Log::log( $request->booking_ref, 'modification_rejected', 'Auto-rejected: conflicts with existing booking' );
+                            return false;
+                        }
+                    }
+
                     // Recalculate cost
                     $space     = $update['space'] ?? $booking->space;
                     $start     = $update['start_time'] ?? $booking->start_time;

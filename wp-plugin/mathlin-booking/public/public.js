@@ -10,12 +10,15 @@ jQuery(function ($) {
                   'July','August','September','October','November','December'];
 
     function loadCalendar(year, month) {
+        // QA-009: Show loading state
+        $('#nms-cal-days').css('opacity', '0.4');
         $.post(NMS.ajax_url, {
             action: 'mbs_get_calendar',
             nonce:  NMS.nonce,
             year:   year,
             month:  month
         }, function (res) {
+            $('#nms-cal-days').css('opacity', '1');
             if (res.success) {
                 calData = res.data;
                 renderCalendar(year, month);
@@ -215,9 +218,12 @@ jQuery(function ($) {
                 spaceLabel = space + ' (' + numDays + ' day' + (numDays !== 1 ? 's' : '') + ' × £' + rateDaily.toFixed(0) + ')';
             } else if (start && end) {
                 var mins = timeToMins(end) - timeToMins(start);
+                // QA-001: Handle bookings spanning midnight
+                if (mins <= 0) mins += 1440; // add 24 hours in minutes
                 var hrs  = Math.ceil(Math.max(0, mins / 60));
-                spaceCost  = hrs * rateHourly;
-                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + ')' : '');
+                // QA-003: Multi-day hourly bookings multiply by number of days
+                spaceCost  = hrs * rateHourly * numDays;
+                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + (numDays > 1 ? ' × ' + numDays + ' days' : '') + ')' : '');
             }
         }
 
@@ -305,13 +311,27 @@ jQuery(function ($) {
         updateCost();
     });
 
-    // Sync end date min with start date
+    // Sync end date min with start date + QA-008: check blocked dates on input
     $('#nms-date').on('change', function() {
         var val = $(this).val();
         if (val) {
             $('#nms-date-end').attr('min', val);
             if ($('#nms-date-end').val() && $('#nms-date-end').val() < val) {
                 $('#nms-date-end').val(val);
+            }
+            // QA-008: Warn if date is blocked
+            if (NMS.blocked_dates && NMS.blocked_dates[val]) {
+                var blocks = NMS.blocked_dates[val];
+                var allBlocked = blocks.indexOf('__all__') !== -1;
+                var msg = allBlocked ? 'This date is unavailable for booking.' : 'Some spaces are unavailable on this date.';
+                $('#nms-date-hint').text('⚠️ ' + msg).css('color', '#e74c3c');
+            } else {
+                // Reset to normal hint
+                var days = NMS.min_notice_days;
+                var hint = days === 0 ? 'Same-day bookings are allowed.' :
+                           days === 1 ? 'Bookings must be made at least 1 day in advance.' :
+                                        'Bookings must be made at least ' + days + ' days in advance.';
+                $('#nms-date-hint').text(hint).css('color', '#6b7280');
             }
         }
         updateCost();

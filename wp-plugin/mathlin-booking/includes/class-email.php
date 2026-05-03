@@ -135,6 +135,15 @@ class MBS_Email {
         $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Space</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $space ) . '</td></tr>';
         $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Time</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $time_str ) . '</td></tr>';
         $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Bookings Created</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;"><strong>' . count( $refs ) . '</strong></td></tr>';
+
+        // QA-005: Calculate and show total cost for the series
+        $total_series_cost = 0;
+        foreach ( $refs as $r ) {
+            $b = MBS_Bookings::get( $r );
+            if ( $b ) $total_series_cost += (float) $b->amount;
+        }
+        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Total Cost</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;font-weight:bold;">&pound;' . number_format( $total_series_cost, 2 ) . '</td></tr>';
+
         $body .= '</table>';
 
         $body .= '<h3 style="color:#7413DC;margin-top:24px;">Booked Dates</h3>';

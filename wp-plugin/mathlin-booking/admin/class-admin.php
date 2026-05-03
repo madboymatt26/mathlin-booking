@@ -641,6 +641,9 @@ class MBS_Admin {
         if ( $booking->start_time !== $update['start_time'] ) $changes[] = 'start: ' . $booking->start_time . ' → ' . $update['start_time'];
         if ( $booking->end_time !== $update['end_time'] ) $changes[] = 'end: ' . $booking->end_time . ' → ' . $update['end_time'];
         if ( abs( $old_amount - $new_amount ) > 0.01 ) $changes[] = 'amount: £' . number_format( $old_amount, 2 ) . ' → £' . number_format( $new_amount, 2 );
+        // QA-006: Note when admin enables/disables scout use
+        if ( $scout_use && ! $booking->scout_use ) $changes[] = 'scout use: enabled by admin';
+        if ( ! $scout_use && $booking->scout_use ) $changes[] = 'scout use: disabled by admin';
 
         $change_summary = ! empty( $changes ) ? implode( ', ', $changes ) : 'Details updated (no price change)';
         MBS_Audit_Log::log( $ref, 'edited', 'Booking edited by admin. ' . $change_summary );

@@ -252,8 +252,10 @@ jQuery(function($) {
             } else if (start && end) {
                 var sh = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
                 var eh = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
-                var hrs = Math.ceil(Math.max(0, (eh - sh) / 60));
-                cost = hrs * rateHourly;
+                var mins = eh - sh;
+                if (mins <= 0) mins += 1440; // QA-001: midnight spanning
+                var hrs = Math.ceil(Math.max(0, mins / 60));
+                cost = hrs * rateHourly * numDays; // QA-003: multi-day
             }
             if (kitchen) cost += kitchenPrice;
         }
