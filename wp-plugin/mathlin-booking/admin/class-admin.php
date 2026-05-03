@@ -24,6 +24,7 @@ class MBS_Admin {
         add_action( 'wp_ajax_mbs_edit_booking',      array( $this, 'ajax_edit_booking' ) );
         add_action( 'wp_ajax_mbs_approve_request',  array( $this, 'ajax_approve_request' ) );
         add_action( 'wp_ajax_mbs_reject_request',   array( $this, 'ajax_reject_request' ) );
+        add_action( 'wp_ajax_mbs_bulk_action',       array( $this, 'ajax_bulk_action' ) );
     }
 
     // ── Menu ───────────────────────────────────────────────────────────────────
@@ -759,6 +760,69 @@ class MBS_Admin {
         } else {
             wp_send_json_error( 'Could not reject this request.' );
         }
+    }
+
+    public function ajax_bulk_action() {
+        check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Forbidden', 403 );
+
+        $action = sanitize_text_field( $_POST['bulk_action'] ?? '' );
+        $refs   = $_POST['refs'] ?? array();
+
+        if ( ! $action || empty( $refs ) || ! is_array( $refs ) ) {
+            wp_send_json_error( 'Please select bookings and an action.' );
+        }
+
+        $allowed = array( 'confirmed', 'paid', 'cancelled', 'archived' );
+        if ( ! in_array( $action, $allowed ) ) {
+            wp_send_json_error( 'Invalid action.' );
+        }
+
+        // Define valid source statuses for each target
+        $valid_transitions = array(
+            'confirmed' => array( 'pending' ),
+            'paid'      => array( 'confirmed' ),
+            'cancelled' => array( 'pending', 'confirmed' ),
+            'archived'  => array( 'confirmed', 'paid', 'cancelled' ),
+        );
+
+        $processed = 0;
+        $skipped   = 0;
+
+        foreach ( $refs as $ref ) {
+            $ref     = strtoupper( sanitize_text_field( $ref ) );
+            $booking = MBS_Bookings::get( $ref );
+            if ( ! $booking ) { $skipped++; continue; }
+
+            // Check valid transition
+            if ( ! in_array( $booking->status, $valid_transitions[ $action ] ) ) {
+                $skipped++;
+                continue;
+            }
+
+            MBS_Bookings::update_status( $ref, $action );
+
+            // Send appropriate emails
+            if ( $action === 'confirmed' ) {
+                $updated = MBS_Bookings::get( $ref );
+                if ( $updated ) MBS_Email::notify_confirmed( $updated );
+            }
+            if ( $action === 'paid' ) {
+                $updated = MBS_Bookings::get( $ref );
+                if ( $updated ) MBS_Email::notify_paid( $updated );
+            }
+
+            $processed++;
+        }
+
+        MBS_Audit_Log::log( 'BULK', 'bulk_' . $action, "Bulk {$action}: {$processed} processed, {$skipped} skipped" );
+
+        wp_send_json_success( array(
+            'action'    => $action,
+            'processed' => $processed,
+            'skipped'   => $skipped,
+            'total'     => count( $refs ),
+        ) );
     }
 }
 

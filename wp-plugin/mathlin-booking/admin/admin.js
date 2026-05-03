@@ -277,6 +277,64 @@ jQuery(function ($) {
         });
     });
 
+    // ── Bulk actions ───────────────────────────────────────────────────────────
+    $('#nms-select-all').on('change', function() {
+        $('.nms-bulk-check').prop('checked', $(this).is(':checked'));
+        updateBulkCount();
+    });
+    $(document).on('change', '.nms-bulk-check', updateBulkCount);
+
+    function updateBulkCount() {
+        var count = $('.nms-bulk-check:checked').length;
+        $('#nms-bulk-count').text(count > 0 ? count + ' selected' : '');
+    }
+
+    $('#nms-bulk-apply').on('click', function() {
+        var action = $('#nms-bulk-action').val();
+        var refs   = [];
+        var $msg   = $('#nms-bulk-msg');
+
+        $('.nms-bulk-check:checked').each(function() {
+            var ref = $(this).val();
+            // For series rows, add all bookings in the series
+            var series = $(this).data('series');
+            if (series) {
+                $('.nms-series-' + series).find('.nms-bulk-check').each(function() {
+                    refs.push($(this).val());
+                });
+            }
+            refs.push(ref);
+        });
+
+        // Deduplicate
+        refs = refs.filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+        if (!action) { $msg.text('Please select an action.').css('color', '#dc3232'); return; }
+        if (refs.length === 0) { $msg.text('Please select at least one booking.').css('color', '#dc3232'); return; }
+
+        var labels = { confirmed: 'confirm', paid: 'mark as paid', cancelled: 'cancel', archived: 'archive' };
+        if (!confirm('Are you sure you want to ' + (labels[action] || action) + ' ' + refs.length + ' booking(s)?\n\nInvalid transitions will be skipped.')) return;
+
+        var $btn = $(this);
+        $btn.prop('disabled', true).text('Processing…');
+
+        $.post(MBS_Admin.ajax_url, {
+            action:      'mbs_bulk_action',
+            nonce:       MBS_Admin.nonce,
+            bulk_action: action,
+            refs:        refs
+        }, function(res) {
+            $btn.prop('disabled', false).text('Apply');
+            if (res.success) {
+                var d = res.data;
+                $msg.text('✓ ' + d.processed + ' processed, ' + d.skipped + ' skipped').css('color', '#46b450');
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                $msg.text('✗ ' + (res.data || 'Error')).css('color', '#dc3232');
+            }
+        });
+    });
+
     // ── Approve/reject modification requests ────────────────────────────────────
     $(document).on('click', '.nms-approve-request', function () {
         var $btn = $(this);

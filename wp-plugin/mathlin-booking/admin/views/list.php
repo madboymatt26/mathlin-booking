@@ -67,9 +67,25 @@
             <p>No bookings found.</p>
         </div>
     <?php else : ?>
+
+    <!-- Bulk actions bar -->
+    <div class="nms-bulk-bar" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <select id="nms-bulk-action" style="min-width:160px;">
+            <option value="">Bulk Actions</option>
+            <option value="confirmed">✓ Confirm Selected</option>
+            <option value="paid">💰 Mark Paid</option>
+            <option value="cancelled">✗ Cancel Selected</option>
+            <option value="archived">📦 Archive Selected</option>
+        </select>
+        <button id="nms-bulk-apply" class="button">Apply</button>
+        <span id="nms-bulk-count" class="nms-muted" style="font-size:0.85rem;"></span>
+        <span id="nms-bulk-msg" class="nms-settings-msg" style="margin-left:8px;"></span>
+    </div>
+
     <table class="wp-list-table widefat fixed striped nms-bookings-table">
         <thead>
             <tr>
+                <th style="width:30px;"><input type="checkbox" id="nms-select-all" title="Select all"></th>
                 <th>Ref</th>
                 <th>Name / Org</th>
                 <th>Space</th>
@@ -115,6 +131,7 @@
                 $last_date   = $series_bookings[ $series_count - 1 ]->booking_date;
                 ?>
                 <tr id="nms-row-<?php echo esc_attr( $b->ref ); ?>" class="nms-series-row" style="background:#f9f7ff;">
+                    <td><input type="checkbox" class="nms-bulk-check" value="<?php echo esc_attr( $b->ref ); ?>" data-series="<?php echo esc_attr( $b->series_id ); ?>"></td>
                     <td>
                         <strong><?php echo esc_html( $b->series_id ); ?></strong>
                         <br><small class="nms-muted"><?php echo $series_count; ?> bookings</small>
@@ -160,6 +177,7 @@
                 // Regular (non-series) booking row
             ?>
                 <tr id="nms-row-<?php echo esc_attr( $b->ref ); ?>">
+                    <td><input type="checkbox" class="nms-bulk-check" value="<?php echo esc_attr( $b->ref ); ?>"></td>
                     <td><strong><?php echo esc_html( $b->ref ); ?></strong></td>
                     <td>
                         <?php echo esc_html( $b->name ); ?>
