@@ -117,13 +117,19 @@ class MBS_Rest_API {
     public function get_by_date( WP_REST_Request $request ) {
         $bookings = MBS_Bookings::get_by_date( sanitize_text_field( $request->get_param('date') ) );
         $safe = array_map( function( $b ) {
-            return array(
-                'ref'        => $b->ref,
+            $data = array(
                 'space'      => $b->space,
                 'start_time' => $b->start_time,
                 'end_time'   => $b->end_time,
-                'all_day'    => $b->space === 'Outdoor Area',
+                'all_day'    => (bool) $b->all_day,
+                'is_public'  => (bool) $b->is_public,
             );
+            // Only show event details for public bookings
+            if ( ! empty( $b->is_public ) ) {
+                $data['purpose'] = $b->purpose;
+                $data['name']    = $b->organisation ?: $b->name;
+            }
+            return $data;
         }, $bookings );
         return rest_ensure_response( $safe );
     }

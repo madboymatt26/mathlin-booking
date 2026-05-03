@@ -92,7 +92,7 @@ class MBS_HomeAssistant {
                 'attendees'  => (int)  $b->attendees,
                 'purpose'    => $b->purpose,
                 'kitchen'    => (bool) $b->kitchen,
-                'all_day'    => $b->space === 'Outdoor Area',
+                'all_day'    => (bool) $b->all_day,
             );
         }
         return $result;

@@ -113,6 +113,10 @@ class MBS_Custom_Fields {
                 return new WP_Error( 'custom_field_required', 'Please fill in: ' . $field['label'] );
             }
 
+            if ( strlen( $value ) > 1000 ) {
+                return new WP_Error( 'custom_field_too_long', 'Response too long for: ' . $field['label'] . ' (max 1000 characters)' );
+            }
+
             if ( ! empty( $value ) ) {
                 $responses[ $field['id'] ] = array(
                     'label' => $field['label'],

@@ -136,6 +136,9 @@ class MBS_Public {
             if ( ! $start || ! $end ) {
                 wp_send_json_error( array( 'message' => 'Please enter start and end times for hourly bookings.' ) );
             }
+            if ( ! preg_match( '/^\d{2}:\d{2}$/', $start ) || ! preg_match( '/^\d{2}:\d{2}$/', $end ) ) {
+                wp_send_json_error( array( 'message' => 'Invalid time format. Please use HH:MM.' ) );
+            }
             if ( strtotime( $end ) <= strtotime( $start ) ) {
                 wp_send_json_error( array( 'message' => 'End time must be after start time.' ) );
             }

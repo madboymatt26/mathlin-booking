@@ -249,6 +249,11 @@ jQuery(function ($) {
         $('#nms-repeat-until-group').toggle(isRecurring);
         if (!isRecurring) {
             $('#nms-repeat-until').val('');
+        } else {
+            // Set max date to 52 weeks from now
+            var maxDate = new Date();
+            maxDate.setDate(maxDate.getDate() + 364);
+            $('#nms-repeat-until').attr('max', maxDate.toISOString().split('T')[0]);
         }
     });
 
@@ -256,11 +261,11 @@ jQuery(function ($) {
     $('#nms-allday').on('change', function () {
         if ($(this).val() === '1') {
             $('#nms-start, #nms-end').removeClass('nms-field-error').val('');
-            // If the only error was time fields, hide the error message
             if ($('.nms-field-error').length === 0) {
                 $('#nms-error-msg').hide();
             }
         }
+        updateCost();
     });
 
     // Sync end date min with start date
