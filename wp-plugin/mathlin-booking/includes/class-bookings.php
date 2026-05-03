@@ -41,7 +41,10 @@ class MBS_Bookings {
         );
     }
 
-    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false, $all_day = false, $num_days = 1 ) {
+    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false, $all_day = false, $num_days = 1, $scout_use = false ) {
+        // Scout use bookings are free
+        if ( $scout_use ) return 0;
+
         $spaces = self::get_spaces();
         if ( ! isset( $spaces[ $space ] ) ) return 0;
 
@@ -79,6 +82,7 @@ class MBS_Bookings {
 
         $ref     = self::generate_ref();
         $all_day = ! empty( $data['all_day'] );
+        $scout_use = ! empty( $data['scout_use'] );
         $date_from = sanitize_text_field( $data['booking_date'] );
         $date_to   = sanitize_text_field( $data['booking_date_end'] ?? $data['booking_date'] );
         $num_days  = max( 1, (int) round( ( strtotime( $date_to ) - strtotime( $date_from ) ) / 86400 ) + 1 );
@@ -89,7 +93,8 @@ class MBS_Bookings {
             sanitize_text_field( $data['end_time'] ?? '' ),
             ! empty( $data['kitchen'] ),
             $all_day,
-            $num_days
+            $num_days,
+            $scout_use
         );
 
         $insert = array(
@@ -105,6 +110,7 @@ class MBS_Bookings {
             'booking_date'     => $date_from,
             'booking_date_end' => $date_to,
             'all_day'          => $all_day ? 1 : 0,
+            'scout_use'        => $scout_use ? 1 : 0,
             'start_time'       => ! empty( $data['start_time'] ) ? sanitize_text_field( $data['start_time'] ) : null,
             'end_time'         => ! empty( $data['end_time'] )   ? sanitize_text_field( $data['end_time'] )   : null,
             'attendees'        => absint( $data['attendees'] ),

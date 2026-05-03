@@ -263,6 +263,23 @@ class MBS_Admin {
         $auto_chase = absint( $_POST['auto_chase_enabled'] ?? 1 );
         update_option( 'mbs_auto_chase_enabled', $auto_chase );
 
+        // Scout volunteer emails
+        $scout_emails = sanitize_textarea_field( $_POST['scout_volunteer_emails'] ?? '' );
+        update_option( 'mbs_scout_volunteer_emails', $scout_emails );
+
+        // Update user meta for scout volunteers
+        $email_list = array_filter( array_map( 'trim', explode( "\n", $scout_emails ) ) );
+        // Clear existing flags
+        global $wpdb;
+        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key = 'mbs_scout_volunteer'" );
+        // Set flags for listed emails
+        foreach ( $email_list as $vol_email ) {
+            $user = get_user_by( 'email', $vol_email );
+            if ( $user ) {
+                update_user_meta( $user->ID, 'mbs_scout_volunteer', 1 );
+            }
+        }
+
         // Save admin email if provided
         if ( ! empty( $admin_email ) ) {
             update_option( 'mbs_admin_email', $admin_email );

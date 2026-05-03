@@ -49,6 +49,7 @@ class MBS_Public {
                 'blocked_dates'   => self::get_blocked_dates_for_frontend(),
                 'is_logged_in'    => is_user_logged_in(),
                 'portal_url'      => $portal_url,
+                'is_scout_volunteer' => self::is_scout_volunteer(),
             ) );
         }
     }
@@ -313,6 +314,14 @@ class MBS_Public {
         }
 
         wp_send_json_success( $data );
+    }
+
+    /**
+     * Check if the current user is a Scout Volunteer.
+     */
+    private static function is_scout_volunteer() {
+        if ( ! is_user_logged_in() ) return false;
+        return (bool) get_user_meta( get_current_user_id(), 'mbs_scout_volunteer', true );
     }
 
     /**

@@ -23,6 +23,7 @@ class MBS_Database {
             booking_date    DATE         NOT NULL,
             booking_date_end DATE         DEFAULT NULL,
             all_day         TINYINT(1)   NOT NULL DEFAULT 0,
+            scout_use       TINYINT(1)   NOT NULL DEFAULT 0,
             start_time      TIME         DEFAULT NULL,
             end_time        TIME         DEFAULT NULL,
             attendees       SMALLINT     NOT NULL DEFAULT 1,
@@ -177,6 +178,12 @@ class MBS_Database {
         $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'is_public'" );
         if ( empty( $col ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN is_public TINYINT(1) NOT NULL DEFAULT 0 AFTER modification_token" );
+        }
+
+        // Add scout_use column if missing
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'scout_use'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN scout_use TINYINT(1) NOT NULL DEFAULT 0 AFTER all_day" );
         }
 
         // Add user_id column if missing (hirer portal)

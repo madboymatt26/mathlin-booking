@@ -142,7 +142,6 @@
                     <textarea id="nms-notes" name="notes" rows="3" placeholder="Any special requirements, setup needs, etc."></textarea>
                 </div>
 
-                <!-- Recurring booking option -->
                 <div class="nms-form-row">
                     <div class="nms-form-group">
                         <label for="nms-recurring">Repeat Weekly?</label>
@@ -168,6 +167,17 @@
                         </select>
                         <p class="nms-field-hint">Public events display the event name and your contact details on the calendar.</p>
                     </div>
+                    <div class="nms-form-group">
+                        <label for="nms-scout-use">Booking Type</label>
+                        <select id="nms-scout-use" name="scout_use">
+                            <option value="0">External hire (charged)</option>
+                            <option value="1" <?php
+                                // Auto-select for Scout Volunteers
+                                if ( is_user_logged_in() && get_user_meta( get_current_user_id(), 'mbs_scout_volunteer', true ) ) echo 'selected';
+                            ?>>Scout use (no charge)</option>
+                        </select>
+                        <p class="nms-field-hint">Scout section meetings, training, and group activities are free of charge.</p>
+                    </div>
                 </div>
             </div>
 
@@ -184,6 +194,10 @@
                     <div class="nms-cost-row" id="nms-cost-kitchen-row" style="display:none">
                         <span>Kitchen add-on</span>
                         <span>£10.00</span>
+                    </div>
+                    <div class="nms-cost-row" id="nms-cost-recurring-row" style="display:none">
+                        <span>Recurring total</span>
+                        <span>£0.00</span>
                     </div>
                     <div class="nms-cost-row nms-cost-total">
                         <span>Estimated Total</span>

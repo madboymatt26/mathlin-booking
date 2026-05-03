@@ -192,8 +192,9 @@ jQuery(function ($) {
             reminder_hours:  $('#reminder_hours').val(),
             terms_page_id:      $('#terms_page_id').val(),
             auto_archive_days:   $('#auto_archive_days').val(),
-            auto_chase_enabled:  $('#auto_chase_enabled').val(),
-            additional_emails:   $('#additional_emails').val(),
+            auto_chase_enabled:      $('#auto_chase_enabled').val(),
+            scout_volunteer_emails:  $('#scout_volunteer_emails').val(),
+            additional_emails:       $('#additional_emails').val(),
             spaces:              spaces
         }, function (res) {
             $btn.prop('disabled', false).text('💾 Save All Settings');

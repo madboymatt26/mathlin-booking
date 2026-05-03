@@ -222,14 +222,46 @@ jQuery(function ($) {
         }
 
         var kitchenPrice = parseFloat(NMS.kitchen_price) || 10;
-        var total = spaceCost + (kitchen ? kitchenPrice : 0);
+        var singleTotal = spaceCost + (kitchen ? kitchenPrice : 0);
+
+        // Check for Scout Use (free booking)
+        var isScoutUse = $('#nms-scout-use').val() === '1';
+        if (isScoutUse) {
+            spaceCost = 0;
+            singleTotal = 0;
+            spaceLabel = space + ' (Scout Use — no charge)';
+        }
+
+        // Calculate recurring total
+        var isRecurring = $('#nms-recurring').val() === '1';
+        var repeatUntil = $('#nms-repeat-until').val();
+        var numWeeks = 1;
+
+        if (isRecurring && dateFrom && repeatUntil) {
+            var startMs = new Date(dateFrom + 'T00:00:00').getTime();
+            var endMs   = new Date(repeatUntil + 'T00:00:00').getTime();
+            numWeeks = Math.max(1, Math.floor((endMs - startMs) / (7 * 86400000)) + 1);
+            numWeeks = Math.min(numWeeks, 52);
+        }
+
+        var grandTotal = singleTotal * numWeeks;
+
         $('#nms-cost-space-label').text(spaceLabel);
-        $('#nms-cost-space-val').text('£' + total2dp(spaceCost));
-        $('#nms-cost-kitchen-row').toggle(kitchen);
-        if (kitchen) {
+        $('#nms-cost-space-val').text('£' + total2dp(isScoutUse ? 0 : spaceCost));
+        $('#nms-cost-kitchen-row').toggle(kitchen && !isScoutUse);
+        if (kitchen && !isScoutUse) {
             $('#nms-cost-kitchen-row').find('span').last().text('£' + total2dp(kitchenPrice));
         }
-        $('#nms-cost-total').text('£' + total2dp(total));
+
+        // Show recurring breakdown
+        if (isRecurring && numWeeks > 1) {
+            $('#nms-cost-recurring-row').show().find('span').first().text(numWeeks + ' weekly bookings × £' + total2dp(singleTotal));
+            $('#nms-cost-recurring-row').find('span').last().text('£' + total2dp(grandTotal));
+            $('#nms-cost-total').text('£' + total2dp(grandTotal));
+        } else {
+            $('#nms-cost-recurring-row').hide();
+            $('#nms-cost-total').text('£' + total2dp(singleTotal));
+        }
 
         // Toggle time fields based on all-day selection
         var hideTime = allDay;
@@ -241,9 +273,14 @@ jQuery(function ($) {
         }
     }
 
-    $('#nms-space, #nms-start, #nms-end, #nms-kitchen, #nms-allday, #nms-date, #nms-date-end').on('change', updateCost);
+    $('#nms-space, #nms-start, #nms-end, #nms-kitchen, #nms-allday, #nms-date, #nms-date-end, #nms-recurring, #nms-repeat-until, #nms-scout-use').on('change', updateCost);
 
     // ── Recurring booking toggle ───────────────────────────────────────────────
+    // Auto-select Scout Use for Scout Volunteers
+    if (NMS.is_scout_volunteer) {
+        $('#nms-scout-use').val('1').trigger('change');
+    }
+
     $('#nms-recurring').on('change', function () {
         var isRecurring = $(this).val() === '1';
         $('#nms-repeat-until-group').toggle(isRecurring);

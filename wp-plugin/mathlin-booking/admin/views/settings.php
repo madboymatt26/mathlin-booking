@@ -327,6 +327,17 @@ rest:
                     </td>
                 </tr>
                 <tr>
+                    <th>Scout Volunteer Emails</th>
+                    <td>
+                        <textarea id="scout_volunteer_emails" name="scout_volunteer_emails" rows="3" class="regular-text" style="width:100%;max-width:500px;"
+                                  placeholder="leader1@example.com&#10;leader2@example.com"><?php echo esc_textarea( get_option( 'mbs_scout_volunteer_emails', '' ) ); ?></textarea>
+                        <p class="description">
+                            One email per line. Users with these email addresses will have "Scout Use" auto-selected on the booking form and their bookings will be free of charge.<br>
+                            This also applies to hirer portal accounts registered with these emails.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th>iCal Feed URL</th>
                     <td>
                         <code><?php echo esc_html( rest_url( 'mathlin/v1/bookings/ical' ) ); ?></code>

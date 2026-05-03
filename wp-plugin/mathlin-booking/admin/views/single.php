@@ -24,6 +24,7 @@
                 <div class="nms-detail-item"><label>Time</label><span><?php echo $booking->space === 'Outdoor Area' ? 'All day' : esc_html( $booking->start_time . ' – ' . $booking->end_time ); ?></span></div>
                 <div class="nms-detail-item"><label>Attendees</label><span><?php echo esc_html( $booking->attendees ); ?></span></div>
                 <div class="nms-detail-item"><label>Kitchen</label><span><?php echo $booking->kitchen ? 'Yes' : 'No'; ?></span></div>
+                <div class="nms-detail-item"><label>Scout Use</label><span><?php echo ! empty( $booking->scout_use ) ? '⚜️ Yes (no charge)' : 'No (external hire)'; ?></span></div>
                 <div class="nms-detail-item"><label>Amount</label><span><strong>&pound;<?php echo number_format( $booking->amount, 2 ); ?></strong></span></div>
                 <div class="nms-detail-item nms-detail-full"><label>Purpose</label><span><?php echo esc_html( $booking->purpose ); ?></span></div>
                 <?php if ( $booking->notes ) : ?>
