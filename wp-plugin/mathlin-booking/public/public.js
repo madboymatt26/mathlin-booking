@@ -219,11 +219,15 @@ jQuery(function ($) {
             } else if (start && end) {
                 var mins = timeToMins(end) - timeToMins(start);
                 // QA-001: Handle bookings spanning midnight
-                if (mins <= 0) mins += 1440; // add 24 hours in minutes
+                var isOvernight = (mins <= 0);
+                if (isOvernight) mins += 1440; // add 24 hours in minutes
                 var hrs  = Math.ceil(Math.max(0, mins / 60));
                 // QA-003: Multi-day hourly bookings multiply by number of days
-                spaceCost  = hrs * rateHourly * numDays;
-                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + (numDays > 1 ? ' × ' + numDays + ' days' : '') + ')' : '');
+                // But overnight + 2-day span = single continuous block, not 2 days
+                var effectiveDays = numDays;
+                if (isOvernight && numDays === 2) effectiveDays = 1;
+                spaceCost  = hrs * rateHourly * effectiveDays;
+                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + (effectiveDays > 1 ? ' × ' + effectiveDays + ' days' : '') + ')' : '');
             }
         }
 

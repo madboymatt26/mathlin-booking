@@ -59,10 +59,16 @@ class MBS_Bookings {
             $start = strtotime( $start_time );
             $end   = strtotime( $end_time );
             // QA-001: Handle bookings spanning midnight (end time next day)
-            if ( $end <= $start ) $end += 86400;
+            $is_overnight = ( $end <= $start );
+            if ( $is_overnight ) $end += 86400;
             $hours = ceil( max( 0, ( $end - $start ) / 3600 ) );
             // QA-003: Multi-day hourly bookings multiply by number of days
-            $cost  = $hours * $rate_hourly * max( 1, $num_days );
+            // BUT: if overnight and end_date is exactly start_date + 1, it's one continuous block
+            $effective_days = max( 1, $num_days );
+            if ( $is_overnight && $num_days == 2 ) {
+                $effective_days = 1; // Single continuous overnight block, not 2 separate days
+            }
+            $cost  = $hours * $rate_hourly * $effective_days;
         }
 
         if ( $kitchen ) $cost += self::get_kitchen_price();

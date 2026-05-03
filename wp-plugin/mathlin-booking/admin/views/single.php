@@ -255,7 +255,10 @@ jQuery(function($) {
                 var mins = eh - sh;
                 if (mins <= 0) mins += 1440; // QA-001: midnight spanning
                 var hrs = Math.ceil(Math.max(0, mins / 60));
-                cost = hrs * rateHourly * numDays; // QA-003: multi-day
+                // QA-003 + overnight fix: single continuous block if overnight + 2-day span
+                var effectiveDays = numDays;
+                if (mins !== (eh - sh) && numDays === 2) effectiveDays = 1;
+                cost = hrs * rateHourly * effectiveDays; // QA-003: multi-day
             }
             if (kitchen) cost += kitchenPrice;
         }
