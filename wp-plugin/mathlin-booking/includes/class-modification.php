@@ -245,8 +245,8 @@ class MBS_Modification {
 
         $subject = "[{$label} Request] " . $booking->ref . ' – ' . $booking->name;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#f39c12;padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<div style="background:#f39c12;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
+        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">' . $label . ' Request</p></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:#f39c12;">' . $label . ' Request</h2>';
@@ -270,8 +270,8 @@ class MBS_Modification {
 
         $subject = 'Booking Change Approved – ' . $booking->ref;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#2ecc71;padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<div style="background:#2ecc71;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
+        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Change Approved</p></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:#2ecc71;">Your Change Has Been Approved</h2>';
@@ -309,8 +309,8 @@ class MBS_Modification {
 
         $subject = 'Booking Change Request Declined – ' . $booking->ref;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#e74c3c;padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<div style="background:#e74c3c;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
+        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Request Declined</p></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:#e74c3c;">Request Declined</h2>';

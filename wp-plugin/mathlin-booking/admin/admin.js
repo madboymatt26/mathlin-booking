@@ -408,6 +408,17 @@ jQuery(function ($) {
         });
     });
 
+    // ── Upload logo via WordPress media library ───────────────────────────────
+    $('#mbs-upload-logo').on('click', function(e) {
+        e.preventDefault();
+        var frame = wp.media({ title: 'Select Logo', multiple: false, library: { type: 'image' } });
+        frame.on('select', function() {
+            var attachment = frame.state().get('selection').first().toJSON();
+            $('#org_logo_url').val(attachment.url);
+        });
+        frame.open();
+    });
+
     // ── Save email settings ────────────────────────────────────────────────────
     $('#mbs-save-email-settings').on('click', function () {
         var $btn = $(this);
@@ -431,6 +442,7 @@ jQuery(function ($) {
             org_address:         $('#org_address').val(),
             org_phone:           $('#org_phone').val(),
             org_charity_number:  $('#org_charity_number').val(),
+            org_logo_url:        $('#org_logo_url').val(),
             max_chase_emails:    $('#max_chase_emails').val(),
             chase_interval_days: $('#chase_interval_days').val(),
             cron_time_reminders: $('#cron_time_reminders').val(),

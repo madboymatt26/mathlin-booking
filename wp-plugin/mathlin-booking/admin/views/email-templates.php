@@ -29,6 +29,22 @@ $chase     = MBS_Email_Templates::get_chase_settings();
                     <th><label for="org_charity_number">Charity Number</label></th>
                     <td><input type="text" id="org_charity_number" value="<?php echo esc_attr( $org['charity_number'] ); ?>" class="regular-text"></td>
                 </tr>
+                <tr>
+                    <th><label for="org_logo_url">Logo</label></th>
+                    <td>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="url" id="org_logo_url" value="<?php echo esc_attr( $org['logo_url'] ); ?>" class="regular-text" placeholder="https://example.com/logo.png">
+                            <button type="button" class="button" id="mbs-upload-logo">Upload</button>
+                        </div>
+                        <?php if ( ! empty( $org['logo_url'] ) ) : ?>
+                            <div style="margin-top:8px;"><img src="<?php echo esc_url( $org['logo_url'] ); ?>" style="max-height:60px;background:#7413DC;padding:8px;border-radius:4px;"></div>
+                        <?php endif; ?>
+                        <p class="description">
+                            Upload or enter the URL of your logo. It will appear in all email headers and on invoices.<br>
+                            Recommended: PNG with transparent background, max 200px wide. Leave blank to use the default ⚜ symbol.
+                        </p>
+                    </td>
+                </tr>
             </table>
         </div>
 

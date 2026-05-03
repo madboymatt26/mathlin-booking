@@ -255,10 +255,12 @@ class MBS_Email {
     }
 
     private static function header() {
-        $org = MBS_Email_Templates::get_org_settings();
+        $org  = MBS_Email_Templates::get_org_settings();
+        $logo = MBS_Email_Templates::get_logo_html();
         return '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">
-        <div style="background:#7413DC;padding:24px 32px;border-radius:8px 8px 0 0;">
-            <h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>
+        <div style="background:#7413DC;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">
+            ' . $logo . '
+            <h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>
             <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">Booking System</p>
         </div>
         <div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';

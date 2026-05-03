@@ -202,21 +202,34 @@ class MBS_Email_Templates {
      */
     public static function get_org_settings() {
         return array(
-            'name'           => get_option( 'mbs_org_name',           'Needham Market Scout Group' ),
-            'address'        => get_option( 'mbs_org_address',        'Scout Hall, Crown St, Needham Market, IP6 8RY' ),
-            'phone'          => get_option( 'mbs_org_phone',          '01449 797577' ),
+            'name'           => get_option( 'mbs_org_name', 'Needham Market Scout Group' ),
+            'address'        => get_option( 'mbs_org_address', 'Scout Hall, Crown St, Needham Market, IP6 8RY' ),
+            'phone'          => get_option( 'mbs_org_phone', '01449 797577' ),
             'charity_number' => get_option( 'mbs_org_charity_number', '1038177' ),
+            'logo_url'       => get_option( 'mbs_org_logo_url', '' ),
         );
+    }
+
+    /**
+     * Get the logo HTML for emails — uses uploaded image or falls back to text.
+     */
+    public static function get_logo_html() {
+        $org = self::get_org_settings();
+        if ( ! empty( $org['logo_url'] ) ) {
+            return '<img src="' . esc_url( $org['logo_url'] ) . '" alt="' . esc_attr( $org['name'] ) . '" style="max-height:50px;max-width:200px;margin-bottom:8px;">';
+        }
+        return '<span style="font-size:2rem;">&#9884;</span>';
     }
 
     /**
      * Save organisation settings.
      */
     public static function save_org_settings( $data ) {
-        if ( isset( $data['org_name'] ) )           update_option( 'mbs_org_name',           sanitize_text_field( $data['org_name'] ) );
-        if ( isset( $data['org_address'] ) )        update_option( 'mbs_org_address',        sanitize_text_field( $data['org_address'] ) );
-        if ( isset( $data['org_phone'] ) )          update_option( 'mbs_org_phone',          sanitize_text_field( $data['org_phone'] ) );
+        if ( isset( $data['org_name'] ) )           update_option( 'mbs_org_name', sanitize_text_field( $data['org_name'] ) );
+        if ( isset( $data['org_address'] ) )        update_option( 'mbs_org_address', sanitize_text_field( $data['org_address'] ) );
+        if ( isset( $data['org_phone'] ) )          update_option( 'mbs_org_phone', sanitize_text_field( $data['org_phone'] ) );
         if ( isset( $data['org_charity_number'] ) ) update_option( 'mbs_org_charity_number', sanitize_text_field( $data['org_charity_number'] ) );
+        if ( isset( $data['org_logo_url'] ) )       update_option( 'mbs_org_logo_url', esc_url_raw( $data['org_logo_url'] ) );
     }
 
     /**

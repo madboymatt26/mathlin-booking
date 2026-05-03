@@ -104,8 +104,9 @@ class MBS_Payment_Chaser {
         $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
 
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:' . $colour . ';padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<div style="background:' . $colour . ';padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">';
+        $body .= MBS_Email_Templates::get_logo_html();
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Payment Reminder</p>';
         $body .= '</div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';

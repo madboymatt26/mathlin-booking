@@ -125,6 +125,10 @@ class MBS_Admin {
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'mbs_admin_nonce' ),
         ) );
+        // Enqueue media library for logo upload
+        if ( strpos( $hook, 'mathlin-emails' ) !== false ) {
+            wp_enqueue_media();
+        }
     }
 
     // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -521,6 +525,7 @@ class MBS_Admin {
             'org_address'        => $_POST['org_address'] ?? '',
             'org_phone'          => $_POST['org_phone'] ?? '',
             'org_charity_number' => $_POST['org_charity_number'] ?? '',
+            'org_logo_url'       => $_POST['org_logo_url'] ?? '',
         ) );
 
         // Save chase/cron settings
@@ -661,8 +666,9 @@ class MBS_Admin {
         $subject = 'Booking Updated – ' . $booking->ref;
 
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#7413DC;padding:24px 32px;border-radius:8px 8px 0 0;">';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">&#9884; ' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<div style="background:#7413DC;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">';
+        $body .= MBS_Email_Templates::get_logo_html();
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
         $body .= '<p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">Booking Update</p>';
         $body .= '</div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
