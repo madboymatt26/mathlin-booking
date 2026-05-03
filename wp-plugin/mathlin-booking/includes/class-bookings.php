@@ -125,6 +125,14 @@ class MBS_Bookings {
         // Generate modification token
         $insert['modification_token'] = wp_generate_password( 32, false );
 
+        // Public/private visibility
+        $insert['is_public'] = ! empty( $data['is_public'] ) ? 1 : 0;
+
+        // Link to logged-in user if applicable
+        if ( is_user_logged_in() ) {
+            $insert['user_id'] = get_current_user_id();
+        }
+
         $result = $wpdb->insert( $table, $insert );
         if ( $result === false ) {
             return new WP_Error( 'db_error', 'Could not save booking.' );

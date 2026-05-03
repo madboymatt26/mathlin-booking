@@ -203,6 +203,85 @@ foreach ( $by_day as $d ) {
             </div>
         </div>
     </div>
+
+    <!-- Occupancy Report -->
+    <?php
+    // Calculate occupancy per space for this FY
+    // Assume 12 hours available per day (8am-8pm), 7 days a week
+    $hours_per_day = 12;
+    $fy_days = max( 1, (int) round( ( strtotime( min( date('Y-m-d'), $fy_end ) ) - strtotime( $fy_start ) ) / 86400 ) );
+    $total_available_hours = $fy_days * $hours_per_day;
+
+    $occupancy_data = array();
+    foreach ( MBS_Bookings::get_spaces() as $space_name => $space_info ) {
+        $booked_hours = (float) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COALESCE(SUM(
+                CASE
+                    WHEN all_day = 1 THEN {$hours_per_day}
+                    WHEN start_time IS NOT NULL AND end_time IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, start_time, end_time) / 60
+                    ELSE 0
+                END
+            ), 0) FROM {$table}
+            WHERE space = %s AND status IN ('confirmed', 'paid') AND booking_date BETWEEN %s AND %s",
+            $space_name, $fy_start, $fy_end
+        ) );
+        $pct = $total_available_hours > 0 ? round( ( $booked_hours / $total_available_hours ) * 100, 1 ) : 0;
+        $occupancy_data[] = array(
+            'space'   => $space_name,
+            'hours'   => round( $booked_hours, 1 ),
+            'total'   => $total_available_hours,
+            'percent' => $pct,
+        );
+    }
+    ?>
+    <div class="nms-card" style="margin-top:1.5rem;">
+        <div class="nms-card-header"><h2>📈 Occupancy / Utilisation (FY <?php echo esc_html( $fy_label ); ?>)</h2></div>
+        <div style="padding:1rem 1.5rem;">
+            <p class="nms-muted" style="margin-bottom:1rem;">Based on <?php echo $hours_per_day; ?> available hours per day (8am–8pm), <?php echo $fy_days; ?> days in the period.</p>
+            <table class="wp-list-table widefat fixed striped" style="font-size:0.85rem;">
+                <thead><tr><th>Space</th><th>Hours Booked</th><th>Hours Available</th><th>Utilisation</th></tr></thead>
+                <tbody>
+                <?php foreach ( $occupancy_data as $occ ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $occ['space'] ); ?></td>
+                        <td><?php echo esc_html( $occ['hours'] ); ?> hrs</td>
+                        <td><?php echo esc_html( $occ['total'] ); ?> hrs</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="flex:1;background:#e5e7eb;border-radius:4px;height:16px;overflow:hidden;">
+                                    <div style="width:<?php echo min( 100, $occ['percent'] ); ?>%;background:#7413DC;height:100%;border-radius:4px;"></div>
+                                </div>
+                                <strong><?php echo $occ['percent']; ?>%</strong>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Accounting Export -->
+    <div class="nms-card" style="margin-top:1.5rem;">
+        <div class="nms-card-header"><h2>💼 Accounting Export</h2></div>
+        <div style="padding:1.5rem;">
+            <p>Export invoices in a format compatible with your accounting software.</p>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;">
+                <div style="display:flex;gap:0.5rem;align-items:center;">
+                    <label style="font-size:0.85rem;font-weight:600;">From:</label>
+                    <input type="date" id="mbs-acc-from" value="<?php echo esc_attr( $fy_start ); ?>">
+                    <label style="font-size:0.85rem;font-weight:600;">To:</label>
+                    <input type="date" id="mbs-acc-to" value="<?php echo esc_attr( min( date('Y-m-d'), $fy_end ) ); ?>">
+                </div>
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+                <a id="mbs-export-xero" href="#" class="button button-primary">📊 Export for Xero</a>
+                <a id="mbs-export-sage" href="#" class="button">📊 Export for Sage</a>
+                <a id="mbs-export-qb" href="#" class="button">📊 Export for QuickBooks</a>
+            </div>
+            <p class="nms-muted" style="margin-top:0.75rem;font-size:0.8rem;">Exports confirmed, paid, and archived bookings as CSV. Import directly into your accounting software.</p>
+        </div>
+    </div>
 </div>
 
 <!-- Chart.js from CDN -->
@@ -254,4 +333,18 @@ foreach ( $by_day as $d ) {
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
 })();
+
+// Accounting export links
+document.querySelectorAll('#mbs-export-xero, #mbs-export-sage, #mbs-export-qb').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var format = 'xero';
+        if (this.id === 'mbs-export-sage') format = 'sage';
+        if (this.id === 'mbs-export-qb') format = 'quickbooks';
+        var from = document.getElementById('mbs-acc-from').value;
+        var to   = document.getElementById('mbs-acc-to').value;
+        var url  = '<?php echo admin_url( "admin-ajax.php" ); ?>?action=mbs_export_accounting&nonce=<?php echo wp_create_nonce( "mbs_admin_nonce" ); ?>&format=' + format + '&date_from=' + from + '&date_to=' + to;
+        window.location.href = url;
+    });
+});
 </script>

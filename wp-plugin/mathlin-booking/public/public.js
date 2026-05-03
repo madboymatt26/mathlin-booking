@@ -135,8 +135,12 @@ jQuery(function ($) {
                     var time = b.all_day ? 'All day' : (b.start_time + ' – ' + b.end_time);
                     html += '<div class="nms-day-booking">' +
                             '<div class="nms-day-booking-space">' + escHtml(b.space) + '</div>' +
-                            '<div class="nms-day-booking-time">' + escHtml(time) + '</div>' +
-                            '</div>';
+                            '<div class="nms-day-booking-time">' + escHtml(time) + '</div>';
+                    if (b.is_public && b.purpose) {
+                        html += '<div style="font-size:0.8rem;color:#1a1a2e;margin-top:2px;">' + escHtml(b.purpose) + '</div>';
+                        if (b.name) html += '<div style="font-size:0.75rem;color:#6b7280;">' + escHtml(b.name) + '</div>';
+                    }
+                    html += '</div>';
                 });
             }
 

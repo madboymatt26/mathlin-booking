@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     2.0.1
+ * Version:     2.1.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '2.0.1' );
+define( 'MBS_VERSION',    '2.1.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -37,6 +37,8 @@ require_once MBS_PLUGIN_DIR . 'includes/class-email-templates.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-email-queue.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-custom-fields.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-modification.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-hirer-portal.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-accounting-export.php';
 require_once MBS_PLUGIN_DIR . 'admin/class-admin.php';
 require_once MBS_PLUGIN_DIR . 'public/class-public.php';
 
@@ -47,6 +49,7 @@ register_deactivation_hook( __FILE__, array( 'MBS_Reminders', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Auto_Archive', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Payment_Chaser', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Email_Queue', 'deactivate' ) );
+register_deactivation_hook( __FILE__, array( 'MBS_Hirer_Portal', 'deactivate' ) );
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 add_action( 'plugins_loaded', 'mbs_init' );
@@ -69,6 +72,8 @@ function mbs_init() {
     $payment_chaser = new MBS_Payment_Chaser();
     $email_queue    = new MBS_Email_Queue();
     $modification   = new MBS_Modification();
+    $hirer_portal   = new MBS_Hirer_Portal();
+    $accounting     = new MBS_Accounting_Export();
 
     $admin->init();
     $public->init();
@@ -82,4 +87,6 @@ function mbs_init() {
     $payment_chaser->init();
     $email_queue->init();
     $modification->init();
+    $hirer_portal->init();
+    $accounting->init();
 }

@@ -16,31 +16,43 @@
         <form id="nms-booking-form" class="nms-form" novalidate>
             <?php wp_nonce_field( 'mbs_public_nonce', 'nonce' ); ?>
 
+            <?php
+            // Pre-fill for logged-in hirers
+            $hirer = MBS_Hirer_Portal::get_hirer_details();
+            ?>
+
             <div class="nms-form-section">
                 <h3>Your Details</h3>
+                <?php if ( $hirer ) : ?>
+                    <p style="font-size:0.85rem;color:#065f46;background:#d1fae5;padding:8px 12px;border-radius:6px;margin-bottom:1rem;">✅ Logged in as <?php echo esc_html( $hirer['name'] ); ?> — your details are pre-filled.</p>
+                <?php endif; ?>
                 <div class="nms-form-row">
                     <div class="nms-form-group">
                         <label for="nms-name">Full Name <span class="nms-req">*</span></label>
-                        <input type="text" id="nms-name" name="name" placeholder="Jane Smith" required>
+                        <input type="text" id="nms-name" name="name" placeholder="Jane Smith" required
+                               value="<?php echo esc_attr( $hirer['name'] ?? '' ); ?>">
                     </div>
                     <div class="nms-form-group">
                         <label for="nms-org">Organisation / Group</label>
-                        <input type="text" id="nms-org" name="organisation" placeholder="e.g. 1st Needham Market Scouts">
+                        <input type="text" id="nms-org" name="organisation" placeholder="e.g. 1st Needham Market Scouts"
+                               value="<?php echo esc_attr( $hirer['organisation'] ?? '' ); ?>">
                     </div>
                 </div>
                 <div class="nms-form-row">
                     <div class="nms-form-group">
                         <label for="nms-email">Email Address <span class="nms-req">*</span></label>
-                        <input type="email" id="nms-email" name="email" placeholder="jane@example.com" required>
+                        <input type="email" id="nms-email" name="email" placeholder="jane@example.com" required
+                               value="<?php echo esc_attr( $hirer['email'] ?? '' ); ?>">
                     </div>
                     <div class="nms-form-group">
                         <label for="nms-phone">Phone Number <span class="nms-req">*</span></label>
-                        <input type="tel" id="nms-phone" name="phone" placeholder="07700 900000" required>
+                        <input type="tel" id="nms-phone" name="phone" placeholder="07700 900000" required
+                               value="<?php echo esc_attr( $hirer['phone'] ?? '' ); ?>">
                     </div>
                 </div>
                 <div class="nms-form-group">
                     <label for="nms-address">Billing Address <span class="nms-req">*</span></label>
-                    <textarea id="nms-address" name="address" rows="3" placeholder="123 High Street, Needham Market, IP6 8AA" required></textarea>
+                    <textarea id="nms-address" name="address" rows="3" placeholder="123 High Street, Needham Market, IP6 8AA" required><?php echo esc_textarea( $hirer['address'] ?? '' ); ?></textarea>
                 </div>
             </div>
 
@@ -134,6 +146,17 @@
                         <input type="date" id="nms-repeat-until" name="repeat_until"
                                min="<?php echo esc_attr( date( 'Y-m-d', strtotime( '+7 days' ) ) ); ?>">
                         <p class="nms-field-hint">Booking will repeat every week until this date (max 52 weeks). Dates with conflicts will be skipped.</p>
+                    </div>
+                </div>
+
+                <div class="nms-form-row">
+                    <div class="nms-form-group">
+                        <label for="nms-public">Event Visibility</label>
+                        <select id="nms-public" name="is_public">
+                            <option value="0">Private — only shows as "Booked" on calendar</option>
+                            <option value="1">Public — show event name and details on calendar</option>
+                        </select>
+                        <p class="nms-field-hint">Public events display the event name and your contact details on the calendar.</p>
                     </div>
                 </div>
             </div>

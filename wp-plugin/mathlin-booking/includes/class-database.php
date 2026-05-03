@@ -38,6 +38,8 @@ class MBS_Database {
             admin_notes     TEXT         DEFAULT '',
             custom_fields   TEXT         DEFAULT '',
             modification_token VARCHAR(64) DEFAULT NULL,
+            is_public       TINYINT(1)   NOT NULL DEFAULT 0,
+            user_id         BIGINT(20)   DEFAULT NULL,
             created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -169,6 +171,18 @@ class MBS_Database {
         $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'modification_token'" );
         if ( empty( $col ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN modification_token VARCHAR(64) DEFAULT NULL AFTER custom_fields" );
+        }
+
+        // Add is_public column if missing (public vs private events)
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'is_public'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN is_public TINYINT(1) NOT NULL DEFAULT 0 AFTER modification_token" );
+        }
+
+        // Add user_id column if missing (hirer portal)
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'user_id'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN user_id BIGINT(20) DEFAULT NULL AFTER is_public" );
         }
     }
 

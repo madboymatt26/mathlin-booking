@@ -27,6 +27,7 @@ class MBS_Public {
             has_shortcode( $post->post_content, 'mathlin_calendar' ) ||
             has_shortcode( $post->post_content, 'mathlin_status' ) ||
             has_shortcode( $post->post_content, 'mathlin_modify' ) ||
+            has_shortcode( $post->post_content, 'mathlin_portal' ) ||
             isset( $_GET['mbs_modify'] )
         ) ) {
             wp_enqueue_style(  'mbs-public', MBS_PLUGIN_URL . 'public/public.css', array(), MBS_VERSION );
@@ -240,12 +241,19 @@ class MBS_Public {
         $bookings = MBS_Bookings::get_by_date( $date );
         // Return only non-sensitive info for public display
         $safe = array_map( function( $b ) {
-            return array(
+            $data = array(
                 'space'      => $b->space,
                 'start_time' => $b->start_time,
                 'end_time'   => $b->end_time,
                 'all_day'    => ! empty( $b->all_day ),
+                'is_public'  => ! empty( $b->is_public ),
             );
+            // Show event details for public bookings
+            if ( ! empty( $b->is_public ) ) {
+                $data['purpose'] = $b->purpose;
+                $data['name']    = $b->organisation ?: $b->name;
+            }
+            return $data;
         }, $bookings );
         wp_send_json_success( $safe );
     }
