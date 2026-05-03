@@ -33,6 +33,12 @@ class MBS_Public {
             wp_enqueue_style(  'mbs-public', MBS_PLUGIN_URL . 'public/public.css', array(), MBS_VERSION );
             wp_enqueue_script( 'mbs-public', MBS_PLUGIN_URL . 'public/public.js',  array( 'jquery' ), MBS_VERSION, true );
             $notice_days = (int) get_option( 'mbs_min_notice_days', 1 );
+
+            // Find portal page URL
+            $portal_url = '';
+            $portal_pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 's' => 'mathlin_portal', 'numberposts' => 1 ) );
+            if ( ! empty( $portal_pages ) ) $portal_url = get_permalink( $portal_pages[0]->ID );
+
             wp_localize_script( 'mbs-public', 'NMS', array(
                 'ajax_url'        => admin_url( 'admin-ajax.php' ),
                 'nonce'           => wp_create_nonce( 'mbs_public_nonce' ),
@@ -41,6 +47,8 @@ class MBS_Public {
                 'min_notice_days' => $notice_days,
                 'min_date'        => date( 'Y-m-d', strtotime( "+{$notice_days} days" ) ),
                 'blocked_dates'   => self::get_blocked_dates_for_frontend(),
+                'is_logged_in'    => is_user_logged_in(),
+                'portal_url'      => $portal_url,
             ) );
         }
     }

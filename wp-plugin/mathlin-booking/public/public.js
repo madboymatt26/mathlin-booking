@@ -305,10 +305,29 @@ jQuery(function ($) {
         var data = $form.serializeArray();
         data.push({ name: 'action', value: 'mbs_submit_booking' });
 
+        // Store form data for quick account creation
+        NMS._lastBookingData = {};
+        data.forEach(function(item) { NMS._lastBookingData[item.name] = item.value; });
+
         $.post(NMS.ajax_url, data, function (res) {
             $btn.prop('disabled', false).text('Submit Booking Request');
             if (res.success) {
-                $ok.text(res.data.message).show();
+                var msg = res.data.message;
+
+                // Show account creation prompt if not logged in
+                if (!NMS.is_logged_in) {
+                    msg += '<div id="nms-create-account-prompt" style="margin-top:16px;padding:16px;background:#f5f0ff;border-radius:8px;border:1px solid #e0d0f0;">' +
+                        '<p style="margin:0 0 8px;font-weight:700;color:#7413DC;">📋 Want to track your bookings?</p>' +
+                        '<p style="margin:0 0 12px;font-size:0.85rem;color:#6b7280;">Create an account to view all your bookings, invoices, and make future bookings faster. Your details are already saved — just set a password.</p>' +
+                        '<div style="display:flex;gap:8px;align-items:center;">' +
+                        '<input type="password" id="nms-quick-password" placeholder="Choose a password (min 8 chars)" style="flex:1;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;">' +
+                        '<button type="button" id="nms-quick-register" class="nms-btn nms-btn-primary nms-btn-sm">Create Account</button>' +
+                        '</div>' +
+                        '<p id="nms-quick-reg-msg" style="margin:8px 0 0;font-size:0.8rem;"></p>' +
+                        '</div>';
+                }
+
+                $ok.html(msg).show();
                 $form[0].reset();
                 updateCost();
                 $('html, body').animate({ scrollTop: $ok.offset().top - 80 }, 400);
@@ -324,6 +343,42 @@ jQuery(function ($) {
     // Clear error state on input
     $(document).on('input change', '.nms-field-error', function () {
         $(this).removeClass('nms-field-error');
+    });
+
+    // ── Quick account creation after booking ───────────────────────────────────
+    $(document).on('click', '#nms-quick-register', function() {
+        var $btn  = $(this);
+        var pass  = $('#nms-quick-password').val();
+        var $msg  = $('#nms-quick-reg-msg');
+
+        if (!pass || pass.length < 8) {
+            $msg.text('Password must be at least 8 characters.').css('color', '#e74c3c');
+            return;
+        }
+
+        // Get the details from the last submitted booking (stored in NMS)
+        var lastBooking = NMS._lastBookingData || {};
+
+        $btn.prop('disabled', true).text('Creating…');
+
+        $.post(NMS.ajax_url, {
+            action:       'mbs_hirer_register',
+            nonce:        NMS.nonce,
+            name:         lastBooking.name || '',
+            email:        lastBooking.email || '',
+            phone:        lastBooking.phone || '',
+            organisation: lastBooking.organisation || '',
+            password:     pass
+        }, function(res) {
+            $btn.prop('disabled', false).text('Create Account');
+            if (res.success) {
+                $('#nms-create-account-prompt').html(
+                    '<p style="margin:0;color:#065f46;font-weight:600;">✅ Account created! You can now <a href="' + (NMS.portal_url || '#') + '" style="color:#7413DC;">view your bookings</a>.</p>'
+                );
+            } else {
+                $msg.text(res.data.message || 'Error creating account.').css('color', '#e74c3c');
+            }
+        });
     });
 
     // ── Helpers ────────────────────────────────────────────────────────────────
