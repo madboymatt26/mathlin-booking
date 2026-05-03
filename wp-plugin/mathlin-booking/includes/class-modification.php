@@ -238,20 +238,22 @@ class MBS_Modification {
     // ── Emails ─────────────────────────────────────────────────────────────────
 
     private static function notify_admin_of_request( $booking, $type ) {
+        $tpl       = MBS_Email_Templates::get_template( 'admin_mod_request' );
+        $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
+        $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
+
         $admin_email = MBS_Bookings::get_admin_email();
         $org         = MBS_Email_Templates::get_org_settings();
-        $label       = $type === 'cancel' ? 'Cancellation' : 'Modification';
+        $logo        = MBS_Email_Templates::get_logo_html();
         $pending     = self::get_pending_count();
 
-        $subject = "[{$label} Request] " . $booking->ref . ' – ' . $booking->name;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#f39c12;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
-        $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">' . $label . ' Request</p></div>';
+        $body .= '<div style="background:#f39c12;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . $logo;
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
-        $body .= '<h2 style="color:#f39c12;">' . $label . ' Request</h2>';
-        $body .= '<p><strong>' . esc_html( $booking->name ) . '</strong> has requested a ' . strtolower( $label ) . ' for booking <strong>' . esc_html( $booking->ref ) . '</strong>.</p>';
-        $body .= '<p>You have <strong>' . $pending . ' pending request(s)</strong> to review.</p>';
+        $body .= '<h2 style="color:#f39c12;">Change Request</h2>';
+        $body .= nl2br( esc_html( $body_text ) );
+        $body .= '<p style="margin-top:12px;">You have <strong>' . $pending . ' pending request(s)</strong>.</p>';
         $body .= '<p style="margin-top:24px;"><a href="' . admin_url( 'admin.php?page=mathlin-requests' ) . '" style="background:#7413DC;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">Review Requests</a></p>';
         $body .= '</div></body></html>';
 
@@ -262,38 +264,31 @@ class MBS_Modification {
     }
 
     private static function notify_booker_approved( $booking, $old_amount ) {
+        $tpl       = MBS_Email_Templates::get_template( 'modification_approved' );
+        $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
+        $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
+
         $org         = MBS_Email_Templates::get_org_settings();
         $admin_email = MBS_Bookings::get_admin_email();
+        $logo        = MBS_Email_Templates::get_logo_html();
         $new_amount  = (float) $booking->amount;
-        $is_daily    = ! empty( $booking->all_day );
-        $time_str    = $is_daily ? 'All day' : ( $booking->start_time . ' – ' . $booking->end_time );
 
-        $subject = 'Booking Change Approved – ' . $booking->ref;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#2ecc71;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
-        $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Change Approved</p></div>';
+        $body .= '<div style="background:#2ecc71;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . $logo;
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
-        $body .= '<h2 style="color:#2ecc71;">Your Change Has Been Approved</h2>';
-        $body .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
-        $body .= '<p>Your requested changes have been approved. Here are your updated booking details:</p>';
-        $body .= '<table style="width:100%;border-collapse:collapse;margin:16px 0;">';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;width:35%;border-bottom:1px solid #e0d0f0;">Space</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $booking->space ) . '</td></tr>';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Date</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( date( 'l j F Y', strtotime( $booking->booking_date ) ) ) . '</td></tr>';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Time</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $time_str ) . '</td></tr>';
-        $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;border-bottom:1px solid #e0d0f0;">Amount</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;font-weight:bold;">&pound;' . number_format( $new_amount, 2 ) . '</td></tr>';
-        $body .= '</table>';
+        $body .= '<h2 style="color:#2ecc71;">Change Approved</h2>';
+        $body .= nl2br( esc_html( $body_text ) );
 
         $diff = $new_amount - (float) $old_amount;
         if ( abs( $diff ) > 0.01 ) {
             if ( $diff > 0 ) {
                 $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px;margin:12px 0;color:#991b1b;"><strong>Additional amount due: &pound;' . number_format( $diff, 2 ) . '</strong></div>';
             } else {
-                $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px;margin:12px 0;color:#065f46;"><strong>Credit of &pound;' . number_format( abs( $diff ), 2 ) . '</strong> — we\'ll arrange a refund.</div>';
+                $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px;margin:12px 0;color:#065f46;"><strong>Credit of &pound;' . number_format( abs( $diff ), 2 ) . '</strong></div>';
             }
         }
 
-        $body .= '<p>Contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a> with any questions.</p>';
         $body .= '</div></body></html>';
 
         MBS_Email_Queue::send( $booking->email, $subject, $body, array(
@@ -303,21 +298,21 @@ class MBS_Modification {
     }
 
     private static function notify_booker_rejected( $booking, $type, $reason ) {
+        $tpl       = MBS_Email_Templates::get_template( 'modification_rejected' );
+        $extra     = array( '{reason}' => $reason ? 'Reason: ' . $reason : '' );
+        $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking, $extra );
+        $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking, $extra );
+
         $org         = MBS_Email_Templates::get_org_settings();
         $admin_email = MBS_Bookings::get_admin_email();
-        $label       = $type === 'cancel' ? 'cancellation' : 'modification';
+        $logo        = MBS_Email_Templates::get_logo_html();
 
-        $subject = 'Booking Change Request Declined – ' . $booking->ref;
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
-        $body .= '<div style="background:#e74c3c;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . MBS_Email_Templates::get_logo_html() . '';
-        $body .= '<h1 style="color:#fff;margin:0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
-        $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Request Declined</p></div>';
+        $body .= '<div style="background:#e74c3c;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . $logo;
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:#e74c3c;">Request Declined</h2>';
-        $body .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
-        $body .= '<p>Unfortunately, we\'re unable to accommodate your ' . $label . ' request for booking <strong>' . esc_html( $booking->ref ) . '</strong>.</p>';
-        if ( $reason ) $body .= '<p><strong>Reason:</strong> ' . esc_html( $reason ) . '</p>';
-        $body .= '<p>Your booking remains unchanged. If you have any questions, please contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a>.</p>';
+        $body .= nl2br( esc_html( $body_text ) );
         $body .= '</div></body></html>';
 
         MBS_Email_Queue::send( $booking->email, $subject, $body, array(

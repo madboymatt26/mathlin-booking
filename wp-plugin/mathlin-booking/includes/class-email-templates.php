@@ -76,6 +76,31 @@ class MBS_Email_Templates {
                 'subject' => 'URGENT: Payment Required – {invoice}',
                 'body'    => "Hi {name},\n\nThis is a final reminder. Payment for your booking is significantly overdue. Please arrange payment immediately to avoid your booking being cancelled.\n\nInvoice: {invoice}\nBooking: {space} on {date}\nAmount Due: {amount}\n\nPayment details:\n{bank_details}\n\nIf you have already made payment, please disregard this email. If you have any questions, contact us at {admin_email} or call {phone}.",
             ),
+            'booking_edited' => array(
+                'label'   => 'Booking Edited by Admin (to booker)',
+                'subject' => 'Booking Updated – {ref}',
+                'body'    => "Hi {name},\n\nYour booking has been updated. Here are the current details:\n\nSpace: {space}\nDate: {date}\nTime: {time}\nAmount: {amount}\n\nIf you have any questions, contact us at {admin_email}.",
+            ),
+            'recurring_summary' => array(
+                'label'   => 'Recurring Booking Summary (to booker)',
+                'subject' => 'Recurring Booking Submitted – {ref}',
+                'body'    => "Hi {name},\n\nYour recurring booking request has been submitted.\n\nSpace: {space}\nTime: {time}\n\nEach booking is pending confirmation. We will review and confirm them shortly.\n\nIf you have any questions, contact us at {admin_email} or call {phone}.",
+            ),
+            'modification_approved' => array(
+                'label'   => 'Change Request Approved (to booker)',
+                'subject' => 'Booking Change Approved – {ref}',
+                'body'    => "Hi {name},\n\nYour requested changes have been approved. Here are your updated booking details:\n\nSpace: {space}\nDate: {date}\nTime: {time}\nAmount: {amount}\n\nIf you have any questions, contact us at {admin_email}.",
+            ),
+            'modification_rejected' => array(
+                'label'   => 'Change Request Declined (to booker)',
+                'subject' => 'Booking Change Request Declined – {ref}',
+                'body'    => "Hi {name},\n\nUnfortunately, we're unable to accommodate your change request for booking {ref}.\n\n{reason}\n\nYour booking remains unchanged. If you have any questions, please contact us at {admin_email} or call {phone}.",
+            ),
+            'admin_mod_request' => array(
+                'label'   => 'Change Request Alert (to admin)',
+                'subject' => '[Change Request] {ref} – {name}',
+                'body'    => "A booker has submitted a change request for booking {ref}.\n\nName: {name}\nSpace: {space}\nDate: {date}\nAmount: {amount}\n\nPlease review and approve or reject the request.",
+            ),
         );
     }
 

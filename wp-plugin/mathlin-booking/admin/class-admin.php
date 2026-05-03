@@ -658,23 +658,22 @@ class MBS_Admin {
      * Send notification email when a booking is edited by admin.
      */
     private static function send_edit_notification( $booking, $old_amount, $new_amount ) {
+        $tpl       = MBS_Email_Templates::get_template( 'booking_edited' );
+        $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
+        $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
+
         $org         = MBS_Email_Templates::get_org_settings();
         $admin_email = MBS_Bookings::get_admin_email();
-        $is_daily    = ! empty( $booking->all_day );
-        $time_str    = $is_daily ? 'All day' : ( $booking->start_time . ' – ' . $booking->end_time );
-
-        $subject = 'Booking Updated – ' . $booking->ref;
+        $logo        = MBS_Email_Templates::get_logo_html();
 
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
         $body .= '<div style="background:#7413DC;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">';
-        $body .= MBS_Email_Templates::get_logo_html();
+        $body .= $logo;
         $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
-        $body .= '<p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">Booking Update</p>';
-        $body .= '</div>';
+        $body .= '<p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">Booking Update</p></div>';
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
-        $body .= '<h2 style="color:#7413DC;">Your Booking Has Been Updated</h2>';
-        $body .= '<p>Hi ' . esc_html( $booking->name ) . ',</p>';
-        $body .= '<p>Your booking has been updated. Here are the current details:</p>';
+        $body .= '<h2 style="color:#7413DC;">Booking Updated</h2>';
+        $body .= nl2br( esc_html( $body_text ) );
 
         $body .= '<table style="width:100%;border-collapse:collapse;margin:16px 0;">';
         $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;width:35%;border-bottom:1px solid #e0d0f0;">Reference</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $booking->ref ) . '</td></tr>';
