@@ -14,3 +14,8 @@ secrets.php
 wp-core/
 wp-includes/
 wp-admin/
+
+# GilbertWeb Connector — separate repo, symlinked for reference
+gilbertweb-connector/
+gilbertweb-connector-waiting-list-manager/
+gilbertweb-ref
