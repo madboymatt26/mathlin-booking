@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     2.10.3
+ * Version:     2.11.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '2.10.3' );
+define( 'MBS_VERSION',    '2.11.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -39,6 +39,7 @@ require_once MBS_PLUGIN_DIR . 'includes/class-custom-fields.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-modification.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-hirer-portal.php';
 require_once MBS_PLUGIN_DIR . 'includes/class-accounting-export.php';
+require_once MBS_PLUGIN_DIR . 'includes/class-osm-integration.php';
 require_once MBS_PLUGIN_DIR . 'admin/class-admin.php';
 require_once MBS_PLUGIN_DIR . 'public/class-public.php';
 
@@ -74,6 +75,7 @@ function mbs_init() {
     $modification   = new MBS_Modification();
     $hirer_portal   = new MBS_Hirer_Portal();
     $accounting     = new MBS_Accounting_Export();
+    $osm_integration = new MBS_OSM_Integration();
 
     $admin->init();
     $public->init();
@@ -89,4 +91,5 @@ function mbs_init() {
     $modification->init();
     $hirer_portal->init();
     $accounting->init();
+    $osm_integration->init();
 }

@@ -321,6 +321,14 @@ class MBS_Bookings {
             if ( $booking ) MBS_HomeAssistant::notify_cancelled( $booking );
         }
 
+        // Fire action when booking is marked as paid (for OSM integration etc.)
+        if ( $result !== false && $status === 'paid' ) {
+            $booking = self::get( $ref );
+            if ( $booking ) {
+                do_action( 'mbs_booking_paid', $booking, 0 );
+            }
+        }
+
         return $result;
     }
 

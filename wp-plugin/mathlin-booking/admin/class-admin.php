@@ -64,6 +64,7 @@ class MBS_Admin {
         add_submenu_page( 'mathlin-booking', 'Settings', 'Settings', $admin_cap, 'mathlin-settings', array( $this, 'render_settings' ) );
         add_submenu_page( 'mathlin-booking', 'Email Templates', 'Email Templates', $admin_cap, 'mathlin-emails', array( $this, 'render_email_templates' ) );
         add_submenu_page( 'mathlin-booking', 'Custom Fields', 'Custom Fields', $admin_cap, 'mathlin-custom-fields', array( $this, 'render_custom_fields' ) );
+        add_submenu_page( 'mathlin-booking', 'OSM Integration', 'OSM Integration', $admin_cap, 'mathlin-osm', array( $this, 'render_osm_settings' ) );
 
         // Booking management pages — accessible to Booking Managers
         add_submenu_page( 'mathlin-booking', 'Analytics', 'Analytics', $booking_cap, 'mathlin-analytics', array( $this, 'render_analytics' ) );
@@ -396,6 +397,10 @@ class MBS_Admin {
 
     public function render_custom_fields() {
         include MBS_PLUGIN_DIR . 'admin/views/custom-fields.php';
+    }
+
+    public function render_osm_settings() {
+        include MBS_PLUGIN_DIR . 'admin/views/osm-settings.php';
     }
 
     public function render_requests() {

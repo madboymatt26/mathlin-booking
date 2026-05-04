@@ -2,7 +2,7 @@
 
 A comprehensive WordPress venue booking plugin built for Needham Market Scout Group, with Home Assistant integration.
 
-**Current Version:** 2.10.3  
+**Current Version:** 2.11.0  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -111,7 +111,16 @@ Base: `/wp-json/mathlin/v1/`
 
 ## Changelog
 
-### v2.10.3 (Latest)
+### v2.11.0 (Latest)
+- **New:** OSM (Online Scout Manager) integration — push financial records when bookings are paid
+- Reuses GilbertWeb Connector OAuth tokens (no double-authentication)
+- Standalone OAuth mode available if GilbertWeb Connector not installed
+- Sandbox mode: logs JSON payloads to error_log instead of live API calls
+- Admin settings page: Scout Bookings → OSM Integration
+- Configurable section ID, category ID, account ID, description template
+- `mbs_booking_paid` action hook fires on all paid status transitions
+
+### v2.10.3
 - **Critical Fix:** WooCommerce payment no longer fails to update booking status
 - Hook registration moved from `plugins_loaded` to `init` to guarantee WooCommerce is loaded
 - Added `woocommerce_payment_complete` hook for direct payment gateways (Stripe, etc.)
