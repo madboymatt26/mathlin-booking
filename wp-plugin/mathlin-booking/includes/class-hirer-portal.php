@@ -20,7 +20,6 @@ class MBS_Hirer_Portal {
 
     public function init() {
         add_action( 'init', array( $this, 'register_roles' ) );
-        add_action( 'init', array( $this, 'register_role' ) );
         add_shortcode( 'mathlin_portal', array( $this, 'shortcode_portal' ) );
         add_action( 'wp_ajax_mbs_hirer_register',    array( $this, 'ajax_register' ) );
         add_action( 'wp_ajax_nopriv_mbs_hirer_register', array( $this, 'ajax_register' ) );
