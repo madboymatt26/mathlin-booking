@@ -41,6 +41,13 @@ class MBS_Woo_Payment {
 
         // Check if product still exists
         if ( $product_id && get_post( $product_id ) && get_post_type( $product_id ) === 'product' ) {
+            // Fix: ensure existing product is published (not private) so guests can purchase
+            $product = wc_get_product( $product_id );
+            if ( $product && $product->get_status() !== 'publish' ) {
+                $product->set_status( 'publish' );
+                $product->set_catalog_visibility( 'hidden' );
+                $product->save();
+            }
             return $product_id;
         }
 
@@ -48,14 +55,15 @@ class MBS_Woo_Payment {
         $product = new WC_Product_Simple();
         $product->set_name( 'Scout Hall Booking Payment' );
         $product->set_slug( self::PRODUCT_SLUG );
-        $product->set_status( 'private' ); // Hidden from shop
-        $product->set_catalog_visibility( 'hidden' );
+        $product->set_status( 'publish' );           // Must be publish for guest checkout
+        $product->set_catalog_visibility( 'hidden' ); // Hidden from shop/search/category pages
         $product->set_price( 0 );
         $product->set_regular_price( 0 );
         $product->set_sold_individually( true );
         $product->set_virtual( true );
         $product->set_tax_status( 'none' ); // Charity exempt
         $product->set_description( 'Payment for venue booking at Needham Market Scout Hall.' );
+        $product->set_reviews_allowed( false );
         $product->save();
 
         $product_id = $product->get_id();
@@ -243,7 +251,7 @@ class MBS_Woo_Payment {
                     echo '<div style="background:#d1fae5;border:1px solid #2ecc71;border-radius:8px;padding:16px 20px;margin:16px 0;">';
                     echo '<h3 style="color:#065f46;margin:0 0 8px;">✅ Booking Payment Received</h3>';
                     echo '<p style="margin:0;">Your payment for booking <strong>' . esc_html( $ref ) . '</strong> ';
-                    echo '(' . esc_html( $booking->space ) . ' on ' . esc_html( date( 'j F Y', strtotime( $booking->booking_date ) ) ) . ') ';
+                    echo '(' . esc_html( $booking->space ) . ' on ' . esc_html( wp_date( 'j F Y', strtotime( $booking->booking_date ) ) ) . ') ';
                     echo 'has been received. Thank you!</p>';
                     echo '</div>';
                 }
