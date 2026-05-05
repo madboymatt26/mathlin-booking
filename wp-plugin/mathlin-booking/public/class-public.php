@@ -52,6 +52,7 @@ class MBS_Public {
                 'is_logged_in'    => is_user_logged_in(),
                 'portal_url'      => $portal_url,
                 'is_scout_volunteer' => self::is_scout_volunteer(),
+                'calendar_mode'   => has_shortcode( $post->post_content, 'mathlin_booking' ) ? 'booking' : 'readonly',
             ) );
         }
     }
@@ -65,8 +66,11 @@ class MBS_Public {
 
     // ── Shortcode: calendar only ───────────────────────────────────────────────
     public function shortcode_calendar( $atts ) {
+        // Set a flag so the view and JS know this is read-only mode
+        $GLOBALS['mbs_calendar_mode'] = 'readonly';
         ob_start();
         include MBS_PLUGIN_DIR . 'public/views/calendar.php';
+        unset( $GLOBALS['mbs_calendar_mode'] );
         return ob_get_clean();
     }
 

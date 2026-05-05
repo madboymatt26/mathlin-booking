@@ -132,7 +132,11 @@ jQuery(function ($) {
             }
 
             if (bookings.length === 0) {
-                html += '<p class="nms-muted" style="margin-bottom:1rem">No bookings on this day.</p>';
+                if (NMS.calendar_mode === 'readonly') {
+                    html += '<p class="nms-muted" style="margin-bottom:1rem">No events scheduled for this date.</p>';
+                } else {
+                    html += '<p class="nms-muted" style="margin-bottom:1rem">No bookings on this day.</p>';
+                }
             } else {
                 bookings.forEach(function (b) {
                     var time = b.all_day ? 'All day' : (b.start_time + ' – ' + b.end_time);
@@ -147,7 +151,10 @@ jQuery(function ($) {
                 });
             }
 
-            html += '<button class="nms-btn nms-btn-primary nms-btn-sm nms-prefill-date" data-date="' + dateStr + '">+ Book this date</button>';
+            // Only show the "Book this date" button in booking mode
+            if (NMS.calendar_mode !== 'readonly') {
+                html += '<button class="nms-btn nms-btn-primary nms-btn-sm nms-prefill-date" data-date="' + dateStr + '">+ Book this date</button>';
+            }
             $sidebar.html(html);
 
             // If sidebar shows bookings but calendar dot is missing, refresh calendar

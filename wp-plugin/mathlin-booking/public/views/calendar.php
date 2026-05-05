@@ -1,8 +1,10 @@
-<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
+<?php if ( ! defined( 'ABSPATH' ) ) exit;
+$is_readonly = ! empty( $GLOBALS['mbs_calendar_mode'] ) && $GLOBALS['mbs_calendar_mode'] === 'readonly';
+?>
 
-<div class="nms-calendar-wrap">
-    <h2 class="nms-section-title">Availability Calendar</h2>
-    <p class="nms-section-sub">Click a date to see what's booked, or to start a new booking.</p>
+<div class="nms-calendar-wrap" data-mode="<?php echo $is_readonly ? 'readonly' : 'booking'; ?>">
+    <h2 class="nms-section-title"><?php echo $is_readonly ? 'What\'s On' : 'Availability Calendar'; ?></h2>
+    <p class="nms-section-sub"><?php echo $is_readonly ? 'Click a date to see scheduled events.' : 'Click a date to see what\'s booked, or to start a new booking.'; ?></p>
 
     <div class="nms-calendar-layout">
         <div class="nms-calendar-main">
