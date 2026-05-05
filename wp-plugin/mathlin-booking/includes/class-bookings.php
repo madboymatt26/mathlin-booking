@@ -313,6 +313,13 @@ class MBS_Bookings {
             if ( $booking ) {
                 MBS_HomeAssistant::notify( $booking );
                 $wpdb->update( $table, array( 'ha_notified' => 1 ), array( 'ref' => $ref ) );
+
+                // Auto-promote £0 bookings (scout use / free) straight to paid
+                if ( (float) $booking->amount <= 0 ) {
+                    $wpdb->update( $table, array( 'status' => 'paid' ), array( 'ref' => $ref ) );
+                    MBS_Audit_Log::log( $ref, 'paid', 'Auto-marked as Paid (£0 booking — no payment required)' );
+                    do_action( 'mbs_booking_paid', self::get( $ref ), 0 );
+                }
             }
         }
 
