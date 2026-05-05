@@ -314,7 +314,7 @@ class MBS_Admin {
         }
 
         // Venue & Legal settings
-        $venue_capacity = absint( $_POST['venue_capacity'] ?? 80 );
+        $venue_capacity = absint( $_POST['venue_capacity'] ?? 100 );
         update_option( 'mbs_venue_capacity', max( 1, $venue_capacity ) );
         update_option( 'mbs_curfew_saturday', sanitize_text_field( $_POST['curfew_saturday'] ?? '11:00 PM' ) );
         update_option( 'mbs_curfew_sunday', sanitize_text_field( $_POST['curfew_sunday'] ?? '10:00 PM' ) );

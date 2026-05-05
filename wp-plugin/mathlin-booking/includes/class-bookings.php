@@ -718,7 +718,7 @@ f) On detection of a fire, the Hirer must break a glass and assist evacuation of
             '{org_phone}'             => $org['phone'] ?? '',
             '{charity_number}'        => $org['charity_number'] ?? '',
             '{admin_email}'           => self::get_admin_email(),
-            '{venue_capacity}'        => get_option( 'mbs_venue_capacity', 80 ),
+            '{venue_capacity}'        => get_option( 'mbs_venue_capacity', 100 ),
             '{curfew_saturday}'       => get_option( 'mbs_curfew_saturday', '11:00 PM' ),
             '{curfew_sunday}'         => get_option( 'mbs_curfew_sunday', '10:00 PM' ),
             '{payment_days_required}' => get_option( 'mbs_payment_days_required', 28 ),
