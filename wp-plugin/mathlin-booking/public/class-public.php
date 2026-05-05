@@ -112,7 +112,7 @@ class MBS_Public {
 
             <?php if ( $booking_notice ) : ?>
             <div class="nms-venue-notice">
-                <strong>⚠️ Please Note:</strong> <?php echo wp_kses_post( $booking_notice ); ?>
+                <strong>⚠️ Please Note:</strong> <?php echo wp_kses_post( nl2br( $booking_notice ) ); ?>
             </div>
             <?php endif; ?>
 

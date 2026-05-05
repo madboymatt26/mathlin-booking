@@ -15,7 +15,7 @@
         $booking_notice = get_option( 'mbs_booking_notice', '' );
         if ( $booking_notice ) : ?>
         <div class="nms-venue-notice" style="margin-bottom:1.5rem;">
-            <strong>⚠️ Please Note:</strong> <?php echo wp_kses_post( $booking_notice ); ?>
+            <strong>⚠️ Please Note:</strong> <?php echo wp_kses_post( nl2br( $booking_notice ) ); ?>
         </div>
         <?php endif; ?>
 
