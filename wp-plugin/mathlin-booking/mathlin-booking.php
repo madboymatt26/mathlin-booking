@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     2.11.0
+ * Version:     2.12.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '2.11.0' );
+define( 'MBS_VERSION',    '2.12.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -51,6 +51,26 @@ register_deactivation_hook( __FILE__, array( 'MBS_Auto_Archive', 'deactivate' ) 
 register_deactivation_hook( __FILE__, array( 'MBS_Payment_Chaser', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Email_Queue', 'deactivate' ) );
 register_deactivation_hook( __FILE__, array( 'MBS_Hirer_Portal', 'deactivate' ) );
+
+// ── GDPR Privacy Hooks ─────────────────────────────────────────────────────────
+add_filter( 'wp_privacy_personal_data_erasers', 'mbs_register_privacy_eraser' );
+add_filter( 'wp_privacy_personal_data_exporters', 'mbs_register_privacy_exporter' );
+
+function mbs_register_privacy_eraser( $erasers ) {
+    $erasers['mathlin-booking'] = array(
+        'eraser_friendly_name' => 'Mathlin Booking System',
+        'callback'             => array( 'MBS_Bookings', 'gdpr_erase_personal_data' ),
+    );
+    return $erasers;
+}
+
+function mbs_register_privacy_exporter( $exporters ) {
+    $exporters['mathlin-booking'] = array(
+        'exporter_friendly_name' => 'Mathlin Booking System',
+        'callback'               => array( 'MBS_Bookings', 'gdpr_export_personal_data' ),
+    );
+    return $exporters;
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 add_action( 'plugins_loaded', 'mbs_init' );

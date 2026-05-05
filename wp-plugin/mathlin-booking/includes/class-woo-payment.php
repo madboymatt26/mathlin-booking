@@ -29,6 +29,8 @@ class MBS_Woo_Payment {
         add_action( 'woocommerce_order_status_completed',  array( $this, 'on_order_completed' ) );
         add_action( 'woocommerce_order_status_processing', array( $this, 'on_order_completed' ) );
         add_action( 'woocommerce_payment_complete',        array( $this, 'on_order_completed' ) );
+        add_action( 'woocommerce_order_status_refunded',   array( $this, 'on_order_refunded' ) );
+        add_action( 'woocommerce_order_fully_refunded',    array( $this, 'on_order_refunded' ) );
         add_action( 'woocommerce_thankyou',                array( $this, 'thankyou_message' ) );
 
         // REST endpoint for generating payment links
@@ -257,6 +259,16 @@ class MBS_Woo_Payment {
                 $order->update_meta_data( '_mbs_booking_ref', $ref );
 
                 $processed_any = true;
+
+            } elseif ( $booking->status === 'cancelled' ) {
+                // SEC-FIX-005: Payment received for a cancelled booking — flag for manual refund
+                $order->add_order_note(
+                    sprintf( '⚠️ CRITICAL: Payment received for CANCELLED booking %s. Manual refund required.', $ref ),
+                    0, true // $is_customer_note = false, $added_by_user = true (shows prominently)
+                );
+                MBS_Audit_Log::log( $ref, 'payment_error', 'Payment received via WooCommerce Order #' . $order_id . ' for CANCELLED booking. Manual refund required.', 0 );
+                error_log( "[Mathlin Booking] CRITICAL: Payment received for cancelled booking {$ref} (Order #{$order_id}). Manual refund required." );
+                $processed_any = true;
             }
         }
 
@@ -264,6 +276,36 @@ class MBS_Woo_Payment {
         if ( $processed_any ) {
             $order->update_meta_data( '_mbs_payment_processed', 'yes' );
             $order->save();
+        }
+    }
+
+    /**
+     * When a WooCommerce order is refunded, revert the booking status to confirmed.
+     * SEC-FIX-001: Handles the case where admin processes a refund directly in WooCommerce.
+     */
+    public function on_order_refunded( $order_id ) {
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) return;
+
+        foreach ( $order->get_items() as $item ) {
+            $ref = $item->get_meta( '_mbs_booking_ref' );
+            if ( ! $ref ) continue;
+
+            $booking = MBS_Bookings::get( $ref );
+            if ( ! $booking ) continue;
+
+            // Only revert if currently paid
+            if ( $booking->status === 'paid' ) {
+                global $wpdb;
+                $table = $wpdb->prefix . MBS_TABLE;
+                $wpdb->update( $table, array( 'status' => 'confirmed' ), array( 'ref' => $ref ) );
+
+                MBS_Audit_Log::log( $ref, 'status_changed', 'Reverted to Confirmed: WooCommerce Order #' . $order_id . ' was refunded.', 0 );
+
+                $order->add_order_note(
+                    sprintf( 'Mathlin Booking %s reverted to Confirmed due to refund.', $ref )
+                );
+            }
         }
     }
 

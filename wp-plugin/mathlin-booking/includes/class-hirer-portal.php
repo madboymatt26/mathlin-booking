@@ -189,10 +189,15 @@ class MBS_Hirer_Portal {
 
     /**
      * Link existing bookings to a newly registered user by email.
+     * SEC-FIX-004: Only links for users with the mbs_hirer role to prevent
+     * admin-created users from inadvertently gaining access to another person's bookings.
      */
     public function link_existing_bookings( $user_id ) {
         $user = get_userdata( $user_id );
         if ( ! $user ) return;
+
+        // Only link bookings for hirer role users
+        if ( ! in_array( self::ROLE, (array) $user->roles, true ) ) return;
 
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;

@@ -147,15 +147,29 @@ class MBS_Email_Queue {
     }
 
     /**
-     * Clean up old sent/failed entries (older than 30 days).
+     * Clean up old sent/failed entries and force-fail stalled pending entries.
+     * SEC-FIX-003: Prevents PII from sitting indefinitely in stalled queue entries.
      */
     public static function cleanup() {
         global $wpdb;
         $table = self::table();
-        $cutoff = wp_date( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
+
+        // Clean sent/failed entries older than 30 days
+        $cutoff_30 = wp_date( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
         $wpdb->query( $wpdb->prepare(
             "DELETE FROM {$table} WHERE status IN ('sent', 'failed') AND created_at < %s",
-            $cutoff
+            $cutoff_30
         ) );
+
+        // SEC-FIX-003: Force-fail stalled pending entries older than 7 days
+        // These contain PII in the email body and should not persist indefinitely
+        $cutoff_7 = wp_date( 'Y-m-d H:i:s', strtotime( '-7 days' ) );
+        $stalled = $wpdb->query( $wpdb->prepare(
+            "UPDATE {$table} SET status = 'failed' WHERE status = 'pending' AND created_at < %s",
+            $cutoff_7
+        ) );
+        if ( $stalled > 0 ) {
+            error_log( "[Mathlin Booking] SEC-FIX-003: Force-failed {$stalled} stalled email queue entries older than 7 days." );
+        }
     }
 }

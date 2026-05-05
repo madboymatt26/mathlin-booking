@@ -640,4 +640,105 @@ class MBS_Bookings {
             'fy_label'   => $fy_label,
         );
     }
+
+    // ── GDPR: Personal Data Erasure ────────────────────────────────────────────
+
+    /**
+     * SEC-FIX-002: WordPress Privacy Eraser callback.
+     * Anonymises PII in booking records while preserving financial audit trail.
+     */
+    public static function gdpr_erase_personal_data( $email, $page = 1 ) {
+        global $wpdb;
+        $table       = $wpdb->prefix . MBS_TABLE;
+        $audit_table = $wpdb->prefix . 'mathlin_audit_log';
+        $queue_table = $wpdb->prefix . 'mathlin_email_queue';
+        $mod_table   = $wpdb->prefix . 'mathlin_mod_requests';
+
+        // Anonymise PII in bookings but preserve financial data (amount, dates, space)
+        $affected = $wpdb->query( $wpdb->prepare(
+            "UPDATE {$table} SET
+                name = 'Anonymised',
+                email = CONCAT('erased-', id, '@anonymised.invalid'),
+                phone = '',
+                address = '',
+                organisation = '',
+                notes = '',
+                admin_notes = CONCAT('[GDPR erasure ', NOW(), '] ', COALESCE(admin_notes, '')),
+                custom_fields = ''
+            WHERE email = %s",
+            $email
+        ) );
+
+        // Anonymise IP addresses in audit log for this person's bookings
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$audit_table} SET ip_address = '0.0.0.0', user_name = 'Anonymised'
+             WHERE ref IN (SELECT ref FROM {$table} WHERE email LIKE 'erased-%@anonymised.invalid')
+             AND user_name != 'System'",
+            $email
+        ) );
+
+        // Delete any queued emails containing this person's data
+        $wpdb->query( $wpdb->prepare(
+            "DELETE FROM {$queue_table} WHERE to_email = %s",
+            $email
+        ) );
+
+        // Anonymise modification request notes
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$mod_table} SET notes = '', admin_response = ''
+             WHERE booking_ref IN (SELECT ref FROM {$table} WHERE email LIKE 'erased-%@anonymised.invalid')"
+        ) );
+
+        $items_removed = $affected > 0;
+
+        return array(
+            'items_removed'  => $items_removed,
+            'items_retained' => $items_removed, // Financial records retained but anonymised
+            'messages'       => $items_removed
+                ? array( sprintf( '%d booking record(s) anonymised. Financial totals preserved for audit.', $affected ) )
+                : array(),
+            'done'           => true,
+        );
+    }
+
+    /**
+     * WordPress Privacy Exporter callback.
+     * Exports all personal data held in booking records.
+     */
+    public static function gdpr_export_personal_data( $email, $page = 1 ) {
+        global $wpdb;
+        $table = $wpdb->prefix . MBS_TABLE;
+
+        $bookings = $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM {$table} WHERE email = %s LIMIT 100",
+            $email
+        ) );
+
+        $export_items = array();
+        foreach ( $bookings as $b ) {
+            $export_items[] = array(
+                'group_id'    => 'mathlin-bookings',
+                'group_label' => 'Venue Bookings',
+                'item_id'     => 'booking-' . $b->id,
+                'data'        => array(
+                    array( 'name' => 'Reference',    'value' => $b->ref ),
+                    array( 'name' => 'Name',         'value' => $b->name ),
+                    array( 'name' => 'Email',        'value' => $b->email ),
+                    array( 'name' => 'Phone',        'value' => $b->phone ),
+                    array( 'name' => 'Address',      'value' => $b->address ),
+                    array( 'name' => 'Organisation', 'value' => $b->organisation ),
+                    array( 'name' => 'Space',        'value' => $b->space ),
+                    array( 'name' => 'Date',         'value' => $b->booking_date ),
+                    array( 'name' => 'Amount',       'value' => '£' . number_format( $b->amount, 2 ) ),
+                    array( 'name' => 'Status',       'value' => $b->status ),
+                    array( 'name' => 'Created',      'value' => $b->created_at ),
+                ),
+            );
+        }
+
+        return array(
+            'data' => $export_items,
+            'done' => true,
+        );
+    }
 }

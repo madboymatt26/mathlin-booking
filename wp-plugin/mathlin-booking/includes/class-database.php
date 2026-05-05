@@ -210,6 +210,18 @@ class MBS_Database {
         if ( empty( $col ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD COLUMN user_id BIGINT(20) DEFAULT NULL AFTER is_public" );
         }
+
+        // SEC-FIX-007: Add index on email column for hirer portal performance
+        $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table} WHERE Key_name = 'idx_email'" );
+        if ( empty( $indexes ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD KEY idx_email (email)" );
+        }
+
+        // SEC-FIX-009: Add composite index for payment chaser query performance
+        $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table} WHERE Key_name = 'idx_chase'" );
+        if ( empty( $indexes ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD KEY idx_chase (status, created_at, chase_count)" );
+        }
     }
 
     public static function on_deactivate() {

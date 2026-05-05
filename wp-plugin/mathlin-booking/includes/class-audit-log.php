@@ -97,12 +97,11 @@ class MBS_Audit_Log {
 
     /**
      * Get the client IP address.
+     * SEC-FIX-010: Only use REMOTE_ADDR to prevent IP spoofing via X-Forwarded-For.
+     * If behind a trusted reverse proxy (Cloudflare, nginx), configure the proxy
+     * to set REMOTE_ADDR correctly rather than trusting client-supplied headers.
      */
     private static function get_ip() {
-        if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-            $ips = explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] );
-            return trim( $ips[0] );
-        }
         return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 }
