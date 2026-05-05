@@ -9,6 +9,8 @@ class MBS_Public {
         add_shortcode( 'mathlin_status', array( $this, 'shortcode_status' ) );
         add_shortcode( 'mathlin_modify', array( $this, 'shortcode_modify' ) );
         add_shortcode( 'mathlin_manage', array( $this, 'shortcode_manage' ) );
+        add_shortcode( 'mathlin_terms',      array( $this, 'shortcode_terms' ) );
+        add_shortcode( 'mathlin_venue_info', array( $this, 'shortcode_venue_info' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_nopriv_mbs_submit_booking', array( $this, 'ajax_submit' ) );
         add_action( 'wp_ajax_mbs_submit_booking',        array( $this, 'ajax_submit' ) );
@@ -71,6 +73,70 @@ class MBS_Public {
         ob_start();
         include MBS_PLUGIN_DIR . 'public/views/calendar.php';
         unset( $GLOBALS['mbs_calendar_mode'] );
+        return ob_get_clean();
+    }
+
+    // ── Shortcode: Terms & Conditions ──────────────────────────────────────────
+    public function shortcode_terms( $atts ) {
+        $terms_text = get_option( 'mbs_terms_text', '' );
+        if ( empty( $terms_text ) ) {
+            $terms_text = MBS_Bookings::get_default_terms();
+        }
+        $parsed = MBS_Bookings::parse_venue_placeholders( $terms_text );
+        return '<div class="nms-wrap nms-terms-content">' . wp_kses_post( $parsed ) . '</div>';
+    }
+
+    // ── Shortcode: Venue Info ──────────────────────────────────────────────────
+    public function shortcode_venue_info( $atts ) {
+        $org = class_exists( 'MBS_Email_Templates' ) ? MBS_Email_Templates::get_org_settings() : array();
+        $org_name    = $org['name'] ?? get_bloginfo( 'name' );
+        $org_address = $org['address'] ?? '';
+        $org_phone   = $org['phone'] ?? '';
+        $admin_email = MBS_Bookings::get_admin_email();
+        $capacity    = get_option( 'mbs_venue_capacity', 80 );
+        $curfew_sat  = get_option( 'mbs_curfew_saturday', '11:00 PM' );
+        $curfew_sun  = get_option( 'mbs_curfew_sunday', '10:00 PM' );
+        $spaces      = MBS_Bookings::get_spaces();
+        $kitchen_price = MBS_Bookings::get_kitchen_price();
+
+        ob_start();
+        ?>
+        <div class="nms-wrap nms-venue-info">
+            <h3>Venue at a Glance</h3>
+            <ul class="nms-venue-list">
+                <li><strong>📍 Location:</strong> <?php echo esc_html( $org_address ?: $org_name ); ?></li>
+                <li><strong>👥 Maximum Capacity:</strong> <?php echo esc_html( $capacity ); ?> people</li>
+                <li><strong>🕐 Curfew (Saturday):</strong> <?php echo esc_html( $curfew_sat ); ?></li>
+                <li><strong>🕐 Curfew (Sun–Fri):</strong> <?php echo esc_html( $curfew_sun ); ?></li>
+                <?php if ( $org_phone ) : ?>
+                <li><strong>📞 Contact:</strong> <?php echo esc_html( $org_phone ); ?></li>
+                <?php endif; ?>
+                <li><strong>📧 Bookings:</strong> <a href="mailto:<?php echo esc_attr( $admin_email ); ?>"><?php echo esc_html( $admin_email ); ?></a></li>
+            </ul>
+
+            <h4>Available Spaces &amp; Pricing</h4>
+            <table class="nms-venue-pricing-table">
+                <thead>
+                    <tr><th>Space</th><th>Hourly Rate</th><th>Day Rate</th><th>Capacity</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $spaces as $name => $info ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $name ); ?></td>
+                        <td>£<?php echo number_format( $info['rate_hourly'] ?? $info['rate'] ?? 0, 2 ); ?></td>
+                        <td>£<?php echo number_format( $info['rate_daily'] ?? 0, 2 ); ?></td>
+                        <td><?php echo ! empty( $info['capacity'] ) ? esc_html( $info['capacity'] ) . ' people' : '—'; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <tr>
+                        <td>Kitchen Add-on</td>
+                        <td colspan="2">£<?php echo number_format( $kitchen_price, 2 ); ?> per session</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <?php
         return ob_get_clean();
     }
 

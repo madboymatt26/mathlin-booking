@@ -220,8 +220,17 @@
             <div class="nms-form-actions">
                 <?php
                 $terms_page_id = (int) get_option( 'mbs_terms_page_id', 0 );
-                if ( $terms_page_id && get_post( $terms_page_id ) ) :
+                $terms_url = '';
+                if ( $terms_page_id && get_post( $terms_page_id ) ) {
                     $terms_url = get_permalink( $terms_page_id );
+                } else {
+                    // Fallback: find a page with [mathlin_terms] shortcode
+                    $terms_pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 's' => 'mathlin_terms', 'numberposts' => 1 ) );
+                    if ( ! empty( $terms_pages ) ) {
+                        $terms_url = get_permalink( $terms_pages[0]->ID );
+                    }
+                }
+                if ( $terms_url ) :
                 ?>
                 <div class="nms-form-group" style="margin-bottom:1rem;text-align:center;">
                     <label style="display:inline-flex;align-items:center;gap:0.5rem;font-weight:500;cursor:pointer;">

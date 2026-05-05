@@ -246,6 +246,62 @@ rest:
             </div>
         </div>
 
+        <!-- Venue & Legal -->
+        <div class="nms-card">
+            <div class="nms-card-header"><h2>📋 Venue &amp; Legal</h2></div>
+            <p>Configure venue details and terms & conditions. These are used by the <code>[mathlin_terms]</code> and <code>[mathlin_venue_info]</code> shortcodes.</p>
+            <table class="form-table">
+                <tr>
+                    <th><label for="venue_capacity">Venue Capacity</label></th>
+                    <td>
+                        <input type="number" id="venue_capacity" value="<?php echo esc_attr( get_option( 'mbs_venue_capacity', 80 ) ); ?>" min="1" style="width:80px"> people
+                        <p class="description">Maximum permitted number for the hall (seating capacity).</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="curfew_saturday">Curfew – Saturday</label></th>
+                    <td>
+                        <input type="text" id="curfew_saturday" value="<?php echo esc_attr( get_option( 'mbs_curfew_saturday', '11:00 PM' ) ); ?>" class="regular-text" placeholder="11:00 PM">
+                        <p class="description">All events must end by this time on Saturdays.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="curfew_sunday">Curfew – Sunday to Friday</label></th>
+                    <td>
+                        <input type="text" id="curfew_sunday" value="<?php echo esc_attr( get_option( 'mbs_curfew_sunday', '10:00 PM' ) ); ?>" class="regular-text" placeholder="10:00 PM">
+                        <p class="description">All events must end by this time on Sunday through Friday.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="payment_days_required">Payment Required Before Event</label></th>
+                    <td>
+                        <input type="number" id="payment_days_required" value="<?php echo esc_attr( get_option( 'mbs_payment_days_required', 28 ) ); ?>" min="1" max="90" style="width:80px"> days
+                        <p class="description">Full payment must be received this many days before the event, or the booking may be cancelled.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="terms_text">Terms &amp; Conditions</label></th>
+                    <td>
+                        <?php
+                        $terms_text = get_option( 'mbs_terms_text', '' );
+                        if ( empty( $terms_text ) ) {
+                            $terms_text = MBS_Bookings::get_default_terms();
+                        }
+                        wp_editor( $terms_text, 'terms_text', array(
+                            'textarea_name' => 'terms_text',
+                            'textarea_rows' => 15,
+                            'media_buttons' => false,
+                            'teeny'         => false,
+                        ) );
+                        ?>
+                        <p class="description" style="margin-top:8px;">
+                            Supports placeholders: <code>{org_name}</code>, <code>{admin_email}</code>, <code>{venue_capacity}</code>, <code>{curfew_saturday}</code>, <code>{curfew_sunday}</code>, <code>{payment_days_required}</code>, <code>{org_address}</code>, <code>{org_phone}</code>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Booking Rules -->
         <div class="nms-card">
             <div class="nms-card-header"><h2>⚙️ Booking Rules</h2></div>

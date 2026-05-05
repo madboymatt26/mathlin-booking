@@ -313,6 +313,17 @@ class MBS_Admin {
             }
         }
 
+        // Venue & Legal settings
+        $venue_capacity = absint( $_POST['venue_capacity'] ?? 80 );
+        update_option( 'mbs_venue_capacity', max( 1, $venue_capacity ) );
+        update_option( 'mbs_curfew_saturday', sanitize_text_field( $_POST['curfew_saturday'] ?? '11:00 PM' ) );
+        update_option( 'mbs_curfew_sunday', sanitize_text_field( $_POST['curfew_sunday'] ?? '10:00 PM' ) );
+        $payment_days_required = absint( $_POST['payment_days_required'] ?? 28 );
+        update_option( 'mbs_payment_days_required', max( 1, min( 90, $payment_days_required ) ) );
+        if ( isset( $_POST['terms_text'] ) ) {
+            update_option( 'mbs_terms_text', wp_kses_post( $_POST['terms_text'] ) );
+        }
+
         wp_send_json_success( array( 'saved' => true, 'min_notice_days' => $notice_days ) );
     }
 

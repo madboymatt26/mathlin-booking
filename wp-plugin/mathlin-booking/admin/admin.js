@@ -195,6 +195,11 @@ jQuery(function ($) {
             auto_chase_enabled:      $('#auto_chase_enabled').val(),
             scout_volunteer_emails:  $('#scout_volunteer_emails').val(),
             additional_emails:       $('#additional_emails').val(),
+            venue_capacity:       $('#venue_capacity').val(),
+            curfew_saturday:      $('#curfew_saturday').val(),
+            curfew_sunday:        $('#curfew_sunday').val(),
+            payment_days_required: $('#payment_days_required').val(),
+            terms_text:           (typeof tinyMCE !== 'undefined' && tinyMCE.get('terms_text')) ? tinyMCE.get('terms_text').getContent() : $('#terms_text').val(),
             spaces:              spaces
         }, function (res) {
             $btn.prop('disabled', false).text('💾 Save All Settings');

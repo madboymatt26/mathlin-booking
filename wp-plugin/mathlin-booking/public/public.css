@@ -406,3 +406,19 @@
     .nms-manage-tab-label { font-size: 0.85rem; }
     .nms-manage-tab { padding: 0.75rem 1rem; }
 }
+
+/* Venue Info shortcode */
+.nms-venue-info h3 { color: #7413DC; margin-bottom: 1rem; }
+.nms-venue-info h4 { color: #7413DC; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+.nms-venue-list { list-style: none; padding: 0; margin: 0 0 1.5rem; }
+.nms-venue-list li { padding: 0.6rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; }
+.nms-venue-list li:last-child { border-bottom: none; }
+.nms-venue-pricing-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.nms-venue-pricing-table th { background: #7413DC; color: #fff; padding: 0.6rem 1rem; text-align: left; }
+.nms-venue-pricing-table td { padding: 0.6rem 1rem; border-bottom: 1px solid #e2e8f0; }
+.nms-venue-pricing-table tr:last-child td { border-bottom: none; }
+
+/* Terms shortcode */
+.nms-terms-content { max-width: 800px; line-height: 1.8; }
+.nms-terms-content h3 { color: #7413DC; }
+.nms-terms-content p { margin-bottom: 1rem; }

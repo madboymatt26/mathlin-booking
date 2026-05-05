@@ -648,6 +648,56 @@ class MBS_Bookings {
         );
     }
 
+    // ── Venue & Legal ──────────────────────────────────────────────────────────
+
+    /**
+     * Get the default Terms & Conditions template with placeholders.
+     */
+    public static function get_default_terms() {
+        return '<h3>Terms &amp; Conditions of Hire</h3>
+
+<p>Any enquiries concerning hiring should be made via email to {admin_email}.</p>
+
+<p>The Hirer shall be over the age of 21.</p>
+
+<p>All events must end by {curfew_saturday} on a Saturday or {curfew_sunday} on Sunday through Friday.</p>
+
+<p>Maximum permitted number for the hall is {venue_capacity} seating capacity.</p>
+
+<p>The Hirer shall indemnify {org_name} for the cost of repair of any accidental or wilful damage done to any part of the premises including the curtilage thereof or the contents of the building during the period of hiring.</p>
+
+<p>The selling of alcohol on the premises is forbidden (unless the hirer has obtained a Temporary Event Notice). {org_name} does not have a Premises Licence for the sale of alcohol.</p>
+
+<p>Full payment for the Hire must be made {payment_days_required} days before the event or the booking will be cancelled. Cancellation by the Hirer within {payment_days_required} days of the event will incur a charge of 50% of the total hire cost.</p>
+
+<p>The Hirer shall be responsible for obtaining any licences or permissions required in connection with the hiring.</p>
+
+<p>The Hirer shall ensure that the premises are left in a clean and tidy condition at the end of the hire period.</p>
+
+<p>{org_name} reserves the right to cancel any booking at any time. In such circumstances, a full refund of any hire charges paid will be made.</p>';
+    }
+
+    /**
+     * Parse T&C/venue text, replacing placeholders with actual values.
+     */
+    public static function parse_venue_placeholders( $text ) {
+        $org = class_exists( 'MBS_Email_Templates' ) ? MBS_Email_Templates::get_org_settings() : array();
+
+        $replacements = array(
+            '{org_name}'              => $org['name'] ?? get_bloginfo( 'name' ),
+            '{org_address}'           => $org['address'] ?? '',
+            '{org_phone}'             => $org['phone'] ?? '',
+            '{charity_number}'        => $org['charity_number'] ?? '',
+            '{admin_email}'           => self::get_admin_email(),
+            '{venue_capacity}'        => get_option( 'mbs_venue_capacity', 80 ),
+            '{curfew_saturday}'       => get_option( 'mbs_curfew_saturday', '11:00 PM' ),
+            '{curfew_sunday}'         => get_option( 'mbs_curfew_sunday', '10:00 PM' ),
+            '{payment_days_required}' => get_option( 'mbs_payment_days_required', 28 ),
+        );
+
+        return str_replace( array_keys( $replacements ), array_values( $replacements ), $text );
+    }
+
     // ── GDPR: Personal Data Erasure ────────────────────────────────────────────
 
     /**
