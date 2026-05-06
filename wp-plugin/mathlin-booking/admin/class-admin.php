@@ -222,8 +222,13 @@ class MBS_Admin {
         $booking = MBS_Bookings::get( $ref );
         if ( ! $booking ) wp_send_json_error( 'Booking not found.' );
 
+        // Set amount_paid = amount to balance the books (refund has been processed)
+        global $wpdb;
+        $table = $wpdb->prefix . MBS_TABLE;
+        $wpdb->update( $table, array( 'amount_paid' => (float) $booking->amount ), array( 'ref' => $ref ) );
+
         MBS_Bookings::update_status( $ref, 'paid' );
-        MBS_Audit_Log::log( $ref, 'refund_processed', 'Admin marked refund/credit as processed. Status set to Paid.' );
+        MBS_Audit_Log::log( $ref, 'refund_processed', 'Admin marked refund of £' . number_format( (float) $booking->amount_paid - (float) $booking->amount, 2 ) . ' as processed. Books balanced.' );
 
         wp_send_json_success( array( 'ref' => $ref, 'status' => 'paid' ) );
     }
