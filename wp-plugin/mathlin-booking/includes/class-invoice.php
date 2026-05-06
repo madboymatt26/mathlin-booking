@@ -30,16 +30,26 @@ class MBS_Invoice {
         $booking_date   = date( 'l j F Y', strtotime( $booking->booking_date ) );
         $time_str       = $is_day_rate ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
 
+        $org            = MBS_Email_Templates::get_org_settings();
+        $org_name       = $org['name'] ?? 'Needham Market Scout Group';
+        $org_address    = $org['address'] ?? '';
+        $org_phone      = $org['phone'] ?? '';
+        $org_charity    = $org['charity_number'] ?? '';
+        $admin_email    = MBS_Bookings::get_admin_email();
+
+        // Split address into lines for the FROM section
+        $address_parts = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
+
         ob_start();
         ?>
         <div class="mbs-invoice" id="mbs-invoice-print">
             <div class="nms-inv-header">
                 <div class="nms-inv-org">
                     <div class="nms-inv-logo">&#9884;</div>
-                    <h2>Needham Market Scout Group</h2>
-                    <p>Scout Hall, Crown St, Needham Market, IP6 8RY<br>
-                    <?php echo esc_html( MBS_Bookings::get_admin_email() ); ?> &bull; 01449 797577<br>
-                    Registered Charity No. 1038177</p>
+                    <h2><?php echo esc_html( $org_name ); ?></h2>
+                    <p><?php echo esc_html( $org_address ); ?><br>
+                    <?php echo esc_html( $admin_email ); ?><?php if ( $org_phone ) : ?> &bull; <?php echo esc_html( $org_phone ); ?><?php endif; ?>
+                    <?php if ( $org_charity ) : ?><br>Registered Charity No. <?php echo esc_html( $org_charity ); ?><?php endif; ?></p>
                 </div>
                 <div class="nms-inv-meta">
                     <div class="nms-inv-number"><?php echo esc_html( $booking->invoice_number ); ?></div>
@@ -52,7 +62,7 @@ class MBS_Invoice {
             <div class="nms-inv-parties">
                 <div class="nms-inv-party">
                     <h4>From</h4>
-                    <p><strong>Needham Market Scout Group</strong><br>Crown St<br>Needham Market<br>Suffolk, IP6 8RY</p>
+                    <p><strong><?php echo esc_html( $org_name ); ?></strong><br><?php echo implode( '<br>', array_map( 'esc_html', $address_parts ) ); ?></p>
                 </div>
                 <div class="nms-inv-party">
                     <h4>Bill To</h4>
@@ -133,6 +143,15 @@ class MBS_Invoice {
         $time_str       = $is_day_rate ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
         $admin_email    = MBS_Bookings::get_admin_email();
 
+        $org            = MBS_Email_Templates::get_org_settings();
+        $org_name       = $org['name'] ?? 'Needham Market Scout Group';
+        $org_address    = $org['address'] ?? '';
+        $org_phone      = $org['phone'] ?? '';
+        $org_charity    = $org['charity_number'] ?? '';
+
+        // Split address into lines for the FROM section
+        $address_parts = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
+
         ob_start();
         ?>
 <!DOCTYPE html>
@@ -170,10 +189,10 @@ class MBS_Invoice {
 <body>
     <div class="inv-header">
         <div class="inv-org">
-            <h2>&#9884; Needham Market Scout Group</h2>
-            <p>Scout Hall, Crown St, Needham Market, IP6 8RY<br>
-            <?php echo esc_html( $admin_email ); ?> &bull; 01449 797577<br>
-            Registered Charity No. 1038177</p>
+            <h2>&#9884; <?php echo esc_html( $org_name ); ?></h2>
+            <p><?php echo esc_html( $org_address ); ?><br>
+            <?php echo esc_html( $admin_email ); ?><?php if ( $org_phone ) : ?> &bull; <?php echo esc_html( $org_phone ); ?><?php endif; ?>
+            <?php if ( $org_charity ) : ?><br>Registered Charity No. <?php echo esc_html( $org_charity ); ?><?php endif; ?></p>
         </div>
         <div class="inv-meta">
             <div class="inv-number"><?php echo esc_html( $booking->invoice_number ); ?></div>
@@ -185,7 +204,7 @@ class MBS_Invoice {
     <div class="inv-parties">
         <div class="inv-party">
             <h4>From</h4>
-            <p><strong>Needham Market Scout Group</strong><br>Crown St<br>Needham Market<br>Suffolk, IP6 8RY</p>
+            <p><strong><?php echo esc_html( $org_name ); ?></strong><br><?php echo implode( '<br>', array_map( 'esc_html', $address_parts ) ); ?></p>
         </div>
         <div class="inv-party">
             <h4>Bill To</h4>
