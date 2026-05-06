@@ -222,6 +222,18 @@ class MBS_Database {
         if ( empty( $indexes ) ) {
             $wpdb->query( "ALTER TABLE {$table} ADD KEY idx_chase (status, created_at, chase_count)" );
         }
+
+        // v3.0.0: Add deposit_paid column to track deposit amount paid
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'deposit_paid'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN deposit_paid DECIMAL(8,2) NOT NULL DEFAULT 0.00 AFTER amount" );
+        }
+
+        // v3.0.0: Add pricing_tier column to track which tier was applied
+        $col = $wpdb->get_results( "SHOW COLUMNS FROM {$table} LIKE 'pricing_tier'" );
+        if ( empty( $col ) ) {
+            $wpdb->query( "ALTER TABLE {$table} ADD COLUMN pricing_tier VARCHAR(30) NOT NULL DEFAULT 'standard' AFTER scout_use" );
+        }
     }
 
     public static function on_deactivate() {

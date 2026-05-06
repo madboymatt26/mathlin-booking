@@ -208,8 +208,20 @@ jQuery(function ($) {
             var rateHourly  = $(this).find('.nms-space-rate-hourly').val();
             var rateDaily   = $(this).find('.nms-space-rate-daily').val();
             var capacity    = $(this).find('.nms-space-capacity').val();
+            var parent      = $(this).find('.nms-space-parent').val() || '';
             if (name) {
-                spaces.push({ name: name, rate_hourly: rateHourly, rate_daily: rateDaily, capacity: capacity });
+                spaces.push({ name: name, rate_hourly: rateHourly, rate_daily: rateDaily, capacity: capacity, parent: parent });
+            }
+        });
+
+        // Collect pricing tiers
+        var tiers = [];
+        $('#nms-tiers-tbody .nms-tier-row').each(function () {
+            var key        = $(this).find('.nms-tier-key').val().trim();
+            var label      = $(this).find('.nms-tier-label').val().trim();
+            var multiplier = $(this).find('.nms-tier-multiplier').val();
+            if (key && label) {
+                tiers.push({ key: key, label: label, multiplier: multiplier });
             }
         });
 
@@ -238,6 +250,10 @@ jQuery(function ($) {
             booking_notice:       $('#booking_notice').val(),
             facilities_text:      $('#facilities_text').val(),
             terms_text:           $('#terms_text').val(),
+            deposit_enabled:      $('#deposit_enabled').val(),
+            deposit_percentage:   $('#deposit_percentage').val(),
+            deposit_balance_days: $('#deposit_balance_days').val(),
+            pricing_tiers:        tiers,
             spaces:              spaces
         }, function (res) {
             $btn.prop('disabled', false).text('💾 Save All Settings');
@@ -260,6 +276,7 @@ jQuery(function ($) {
             '<td><input type="number" class="nms-space-rate-hourly" value="0" min="0" step="0.01" style="width:80px"></td>' +
             '<td><input type="number" class="nms-space-rate-daily" value="0" min="0" step="0.01" style="width:80px"></td>' +
             '<td><input type="number" class="nms-space-capacity" value="" min="1" style="width:70px" placeholder="—"></td>' +
+            '<td><input type="text" class="nms-space-parent" value="" placeholder="None" style="width:120px;"></td>' +
             '<td><button type="button" class="button nms-remove-space" title="Remove space">&times;</button></td>' +
             '</tr>';
         $('#nms-spaces-tbody').append(row);
@@ -270,6 +287,26 @@ jQuery(function ($) {
         var $row = $(this).closest('.nms-space-row');
         var name = $row.find('.nms-space-name').val();
         if (name && !confirm('Remove "' + name + '" from bookable spaces?')) return;
+        $row.remove();
+    });
+
+    // ── Add pricing tier row ───────────────────────────────────────────────────
+    $('#nms-add-tier').on('click', function () {
+        var row = '<tr class="nms-tier-row">' +
+            '<td><input type="text" class="nms-tier-key" value="" style="width:120px;" placeholder="e.g. nonprofit"></td>' +
+            '<td><input type="text" class="nms-tier-label" value="" style="width:180px;" placeholder="e.g. Non-Profit"></td>' +
+            '<td><input type="number" class="nms-tier-multiplier" value="1.0" min="0" step="0.05" style="width:80px;"> ×</td>' +
+            '<td><button type="button" class="button nms-remove-tier">&times;</button></td>' +
+            '</tr>';
+        $('#nms-tiers-tbody').append(row);
+    });
+
+    // ── Remove pricing tier row ────────────────────────────────────────────────
+    $(document).on('click', '.nms-remove-tier', function () {
+        var $row = $(this).closest('.nms-tier-row');
+        var key = $row.find('.nms-tier-key').val();
+        if (key === 'standard') { alert('Cannot remove the Standard tier.'); return; }
+        if (key && !confirm('Remove pricing tier "' + key + '"?')) return;
         $row.remove();
     });
 

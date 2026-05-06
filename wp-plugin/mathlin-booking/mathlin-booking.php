@@ -3,7 +3,7 @@
  * Plugin Name: Mathlin Booking System
  * Plugin URI:  https://needhamscouts.uk
  * Description: Venue booking system for Needham Market Scout Group with Home Assistant integration.
- * Version:     2.15.3
+ * Version:     3.0.0
  * Author:      Needham Market Scout Group
  * License:     GPL-2.0+
  * Text Domain: mathlin-booking
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MBS_VERSION',    '2.15.3' );
+define( 'MBS_VERSION',    '3.0.0' );
 define( 'MBS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MBS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MBS_TABLE',      'mathlin_bookings' );
@@ -116,4 +116,45 @@ function mbs_init() {
     $accounting->init();
     $osm_integration->init();
     $woo_ux->init();
+
+    // User profile: Pricing Tier field
+    add_action( 'show_user_profile', 'mbs_user_pricing_tier_field' );
+    add_action( 'edit_user_profile', 'mbs_user_pricing_tier_field' );
+    add_action( 'personal_options_update', 'mbs_save_user_pricing_tier' );
+    add_action( 'edit_user_profile_update', 'mbs_save_user_pricing_tier' );
+}
+
+/**
+ * Display Pricing Tier dropdown on user profile page.
+ */
+function mbs_user_pricing_tier_field( $user ) {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+    $tiers = MBS_Bookings::get_pricing_tiers();
+    $current = get_user_meta( $user->ID, 'mbs_pricing_tier', true ) ?: 'standard';
+    ?>
+    <h3>Mathlin Booking System</h3>
+    <table class="form-table">
+        <tr>
+            <th><label for="mbs_pricing_tier">Pricing Tier</label></th>
+            <td>
+                <select name="mbs_pricing_tier" id="mbs_pricing_tier">
+                    <?php foreach ( $tiers as $key => $tier ) : ?>
+                        <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $current, $key ); ?>><?php echo esc_html( $tier['label'] ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="description">Determines which pricing rates apply to this user's bookings.</p>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+
+/**
+ * Save Pricing Tier from user profile.
+ */
+function mbs_save_user_pricing_tier( $user_id ) {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+    if ( isset( $_POST['mbs_pricing_tier'] ) ) {
+        update_user_meta( $user_id, 'mbs_pricing_tier', sanitize_key( $_POST['mbs_pricing_tier'] ) );
+    }
 }

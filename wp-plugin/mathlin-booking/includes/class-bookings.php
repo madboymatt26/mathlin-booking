@@ -41,7 +41,106 @@ class MBS_Bookings {
         );
     }
 
-    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false, $all_day = false, $num_days = 1, $scout_use = false ) {
+    // ── Deposit Configuration ──────────────────────────────────────────────────
+
+    /**
+     * Get deposit settings.
+     */
+    public static function get_deposit_settings() {
+        return array(
+            'enabled'         => (bool) get_option( 'mbs_deposit_enabled', false ),
+            'percentage'      => (float) get_option( 'mbs_deposit_percentage', 25 ),
+            'balance_days'    => (int) get_option( 'mbs_deposit_balance_days', 7 ),
+        );
+    }
+
+    /**
+     * Calculate the deposit amount for a booking.
+     */
+    public static function calculate_deposit( $total_amount ) {
+        $settings = self::get_deposit_settings();
+        if ( ! $settings['enabled'] || $total_amount <= 0 ) return $total_amount;
+        return round( $total_amount * ( $settings['percentage'] / 100 ), 2 );
+    }
+
+    /**
+     * Determine if a booking requires full payment immediately (event within balance_days).
+     */
+    public static function requires_full_payment( $booking_date ) {
+        $settings = self::get_deposit_settings();
+        if ( ! $settings['enabled'] ) return true;
+        $days_until = ( strtotime( $booking_date ) - current_time( 'timestamp' ) ) / 86400;
+        return $days_until <= $settings['balance_days'];
+    }
+
+    // ── Pricing Tiers ──────────────────────────────────────────────────────────
+
+    /**
+     * Get configured pricing tiers.
+     */
+    public static function get_pricing_tiers() {
+        $tiers = get_option( 'mbs_pricing_tiers', array() );
+        if ( empty( $tiers ) ) {
+            $tiers = self::get_default_tiers();
+        }
+        return $tiers;
+    }
+
+    public static function get_default_tiers() {
+        return array(
+            'standard'  => array( 'label' => 'Standard', 'multiplier' => 1.0 ),
+            'community' => array( 'label' => 'Charity / Community', 'multiplier' => 0.75 ),
+            'commercial' => array( 'label' => 'Commercial', 'multiplier' => 1.5 ),
+        );
+    }
+
+    /**
+     * Get the pricing tier for a user. Defaults to 'standard' for guests.
+     */
+    public static function get_user_tier( $user_id = null ) {
+        if ( ! $user_id ) $user_id = get_current_user_id();
+        if ( ! $user_id ) return 'standard';
+        $tier = get_user_meta( $user_id, 'mbs_pricing_tier', true );
+        return $tier ?: 'standard';
+    }
+
+    /**
+     * Get the rate multiplier for a given tier.
+     */
+    public static function get_tier_multiplier( $tier = 'standard' ) {
+        $tiers = self::get_pricing_tiers();
+        if ( isset( $tiers[ $tier ] ) ) {
+            return (float) ( $tiers[ $tier ]['multiplier'] ?? 1.0 );
+        }
+        return 1.0;
+    }
+
+    // ── Space Bundling ─────────────────────────────────────────────────────────
+
+    /**
+     * Get related spaces for conflict detection (parent/child bundling).
+     * Returns an array of space names that must also be checked for conflicts.
+     */
+    public static function get_related_spaces( $space ) {
+        $spaces = self::get_spaces();
+        $related = array();
+
+        // If this space has a parent, add the parent
+        if ( ! empty( $spaces[ $space ]['parent'] ) ) {
+            $related[] = $spaces[ $space ]['parent'];
+        }
+
+        // If this space IS a parent, add all its children
+        foreach ( $spaces as $name => $info ) {
+            if ( ! empty( $info['parent'] ) && $info['parent'] === $space ) {
+                $related[] = $name;
+            }
+        }
+
+        return $related;
+    }
+
+    public static function calculate_cost( $space, $start_time, $end_time, $kitchen = false, $all_day = false, $num_days = 1, $scout_use = false, $tier = 'standard' ) {
         // Scout use bookings are free
         if ( $scout_use ) return 0;
 
@@ -51,11 +150,28 @@ class MBS_Bookings {
         $info = $spaces[ $space ];
         $cost = 0;
 
+        // Get tier-specific rates if available, otherwise apply multiplier
+        $multiplier = self::get_tier_multiplier( $tier );
+
+        // Check for tier-specific rates in the space config
+        $rate_hourly_key = 'rate_hourly_' . $tier;
+        $rate_daily_key  = 'rate_daily_' . $tier;
+
         if ( $all_day ) {
-            $rate_daily = isset( $info['rate_daily'] ) ? (float) $info['rate_daily'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
+            if ( isset( $info[ $rate_daily_key ] ) && (float) $info[ $rate_daily_key ] > 0 ) {
+                $rate_daily = (float) $info[ $rate_daily_key ];
+            } else {
+                $rate_daily = isset( $info['rate_daily'] ) ? (float) $info['rate_daily'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
+                $rate_daily = $rate_daily * $multiplier;
+            }
             $cost = $rate_daily * max( 1, $num_days );
         } elseif ( $start_time && $end_time ) {
-            $rate_hourly = isset( $info['rate_hourly'] ) ? (float) $info['rate_hourly'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
+            if ( isset( $info[ $rate_hourly_key ] ) && (float) $info[ $rate_hourly_key ] > 0 ) {
+                $rate_hourly = (float) $info[ $rate_hourly_key ];
+            } else {
+                $rate_hourly = isset( $info['rate_hourly'] ) ? (float) $info['rate_hourly'] : ( isset( $info['rate'] ) ? (float) $info['rate'] : 0 );
+                $rate_hourly = $rate_hourly * $multiplier;
+            }
             $start = strtotime( $start_time );
             $end   = strtotime( $end_time );
             // QA-001: Handle bookings spanning midnight (end time next day)
@@ -72,7 +188,7 @@ class MBS_Bookings {
         }
 
         if ( $kitchen ) $cost += self::get_kitchen_price();
-        return $cost;
+        return round( $cost, 2 );
     }
 
     public static function generate_ref() {
@@ -293,7 +409,7 @@ class MBS_Bookings {
     public static function update_status( $ref, $status ) {
         global $wpdb;
         $table   = $wpdb->prefix . MBS_TABLE;
-        $allowed = array( 'pending', 'confirmed', 'cancelled', 'archived', 'paid' );
+        $allowed = array( 'pending', 'confirmed', 'cancelled', 'archived', 'paid', 'deposit_paid' );
         if ( ! in_array( $status, $allowed ) ) return false;
 
         $result = $wpdb->update(
@@ -360,6 +476,22 @@ class MBS_Bookings {
      * @return array  Array of conflicting booking objects (empty = no conflicts)
      */
     public static function check_conflicts( $space, $date, $start_time = null, $end_time = null, $all_day = false, $exclude_ref = '' ) {
+        // Check the requested space AND any related spaces (parent/child bundling)
+        $spaces_to_check = array_merge( array( $space ), self::get_related_spaces( $space ) );
+        $all_conflicts = array();
+
+        foreach ( $spaces_to_check as $check_space ) {
+            $conflicts = self::check_conflicts_for_space( $check_space, $date, $start_time, $end_time, $all_day, $exclude_ref );
+            $all_conflicts = array_merge( $all_conflicts, $conflicts );
+        }
+
+        return $all_conflicts;
+    }
+
+    /**
+     * Check conflicts for a single space (internal helper).
+     */
+    private static function check_conflicts_for_space( $space, $date, $start_time = null, $end_time = null, $all_day = false, $exclude_ref = '' ) {
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
 

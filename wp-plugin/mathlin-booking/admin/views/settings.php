@@ -21,6 +21,7 @@
                         <th>Hourly Rate (£)</th>
                         <th>Day Rate (£)</th>
                         <th>Capacity</th>
+                        <th>Parent Space</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -31,6 +32,7 @@
                         <td><input type="number" class="nms-space-rate-hourly" value="<?php echo esc_attr( $info['rate_hourly'] ?? $info['rate'] ?? 0 ); ?>" min="0" step="0.01" style="width:80px"></td>
                         <td><input type="number" class="nms-space-rate-daily" value="<?php echo esc_attr( $info['rate_daily'] ?? 0 ); ?>" min="0" step="0.01" style="width:80px"></td>
                         <td><input type="number" class="nms-space-capacity" value="<?php echo esc_attr( $info['capacity'] ?? '' ); ?>" min="1" style="width:70px" placeholder="—"></td>
+                        <td><input type="text" class="nms-space-parent" value="<?php echo esc_attr( $info['parent'] ?? '' ); ?>" style="width:120px;" placeholder="None"></td>
                         <td><button type="button" class="button nms-remove-space" title="Remove space">&times;</button></td>
                     </tr>
                     <?php endforeach; ?>
@@ -38,6 +40,9 @@
             </table>
             <p style="margin-top:12px;">
                 <button type="button" class="button" id="nms-add-space">+ Add Space</button>
+            </p>
+            <p class="description">
+                <strong>Parent Space:</strong> For space bundling, enter the name of the parent space (e.g. "Whole Headquarters"). Booking a parent blocks all children, and booking a child blocks the parent.
             </p>
 
             <h4 style="margin-top:1.5rem">Kitchen Add-on</h4>
@@ -437,6 +442,68 @@ rest:
                     <td><?php echo esc_html( MBS_VERSION ); ?></td>
                 </tr>
             </table>
+        </div>
+
+        <!-- Deposit Management -->
+        <div class="nms-card">
+            <div class="nms-card-header"><h2>💰 Deposit Management</h2></div>
+            <p>Require a partial deposit at booking time, with the balance due before the event.</p>
+            <table class="form-table">
+                <tr>
+                    <th><label for="deposit_enabled">Deposits</label></th>
+                    <td>
+                        <select id="deposit_enabled">
+                            <option value="0" <?php selected( get_option( 'mbs_deposit_enabled', 0 ), 0 ); ?>>Disabled (full payment required)</option>
+                            <option value="1" <?php selected( get_option( 'mbs_deposit_enabled', 0 ), 1 ); ?>>Enabled</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="deposit_percentage">Deposit amount</label></th>
+                    <td>
+                        <input type="number" id="deposit_percentage" value="<?php echo esc_attr( get_option( 'mbs_deposit_percentage', 25 ) ); ?>" min="1" max="99" style="width:80px">%
+                        <p class="description">Percentage of total cost required as deposit at booking time.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="deposit_balance_days">Balance due</label></th>
+                    <td>
+                        <input type="number" id="deposit_balance_days" value="<?php echo esc_attr( get_option( 'mbs_deposit_balance_days', 7 ) ); ?>" min="1" max="90" style="width:80px"> days before event
+                        <p class="description">Remaining balance must be paid this many days before the event. If the booking is made within this window, 100% is due immediately.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Pricing Tiers -->
+        <div class="nms-card">
+            <div class="nms-card-header"><h2>🏷️ Pricing Tiers</h2></div>
+            <p>Configure pricing multipliers for different customer types. Assign tiers to hirers via their WordPress user profile.</p>
+            <?php $tiers = MBS_Bookings::get_pricing_tiers(); ?>
+            <table class="widefat" id="nms-tiers-table">
+                <thead>
+                    <tr>
+                        <th>Tier Key</th>
+                        <th>Label</th>
+                        <th>Rate Multiplier</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="nms-tiers-tbody">
+                    <?php foreach ( $tiers as $key => $tier ) : ?>
+                    <tr class="nms-tier-row">
+                        <td><input type="text" class="nms-tier-key" value="<?php echo esc_attr( $key ); ?>" style="width:120px;" <?php echo $key === 'standard' ? 'readonly' : ''; ?>></td>
+                        <td><input type="text" class="nms-tier-label" value="<?php echo esc_attr( $tier['label'] ); ?>" style="width:180px;"></td>
+                        <td><input type="number" class="nms-tier-multiplier" value="<?php echo esc_attr( $tier['multiplier'] ); ?>" min="0" step="0.05" style="width:80px;"> ×</td>
+                        <td><?php if ( $key !== 'standard' ) : ?><button type="button" class="button nms-remove-tier">&times;</button><?php endif; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <p style="margin-top:12px;">
+                <button type="button" class="button" id="nms-add-tier">+ Add Tier</button>
+            </p>
+            <p class="description">Standard (1.0×) is the base rate. Community (0.75×) = 25% discount. Commercial (1.5×) = 50% surcharge.<br>You can also set tier-specific rates per space by adding <code>rate_hourly_[tier_key]</code> and <code>rate_daily_[tier_key]</code> fields to the space config.</p>
         </div>
 
         <!-- Single Save Button -->

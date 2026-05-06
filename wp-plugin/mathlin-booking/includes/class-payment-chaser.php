@@ -27,6 +27,7 @@ class MBS_Payment_Chaser {
 
     /**
      * Auto-chase: find overdue confirmed bookings and send reminders.
+     * Also finds deposit_paid bookings approaching their balance due date.
      * Only sends if:
      *   - Status is 'confirmed' (not paid, not cancelled)
      *   - Created more than payment_terms_days ago
@@ -59,6 +60,28 @@ class MBS_Payment_Chaser {
             $max_chases,
             wp_date( 'Y-m-d H:i:s', strtotime( "-{$chase_interval} days" ) )
         ) );
+
+        if ( empty( $bookings ) ) $bookings = array();
+
+        // Also chase deposit_paid bookings where balance is due soon
+        $deposit_settings = MBS_Bookings::get_deposit_settings();
+        if ( $deposit_settings['enabled'] ) {
+            $balance_due_date = wp_date( 'Y-m-d', strtotime( '+' . $deposit_settings['balance_days'] . ' days' ) );
+            $deposit_bookings = $wpdb->get_results( $wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE status = 'deposit_paid'
+                 AND booking_date <= %s
+                 AND (chase_count < 2 OR chase_count IS NULL)
+                 AND (last_chased IS NULL OR last_chased <= %s)
+                 ORDER BY booking_date ASC
+                 LIMIT 10",
+                $balance_due_date,
+                wp_date( 'Y-m-d H:i:s', strtotime( "-{$chase_interval} days" ) )
+            ) );
+            if ( ! empty( $deposit_bookings ) ) {
+                $bookings = array_merge( $bookings, $deposit_bookings );
+            }
+        }
 
         if ( empty( $bookings ) ) return;
 

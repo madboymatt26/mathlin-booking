@@ -320,15 +320,42 @@ class MBS_Admin {
                 $rate_hourly = floatval( $space_data['rate_hourly'] ?? 0 );
                 $rate_daily  = floatval( $space_data['rate_daily'] ?? 0 );
                 $capacity    = absint( $space_data['capacity'] ?? 0 );
+                $parent      = sanitize_text_field( $space_data['parent'] ?? '' );
 
                 $spaces[ $name ] = array(
                     'rate_hourly' => max( 0, $rate_hourly ),
                     'rate_daily'  => max( 0, $rate_daily ),
                     'capacity'    => $capacity > 0 ? $capacity : null,
+                    'parent'      => $parent ?: null,
                 );
             }
             if ( ! empty( $spaces ) ) {
                 MBS_Bookings::save_spaces( $spaces );
+            }
+        }
+
+        // Deposit settings
+        update_option( 'mbs_deposit_enabled', absint( $_POST['deposit_enabled'] ?? 0 ) );
+        $deposit_pct = floatval( $_POST['deposit_percentage'] ?? 25 );
+        update_option( 'mbs_deposit_percentage', max( 1, min( 99, $deposit_pct ) ) );
+        $deposit_days = absint( $_POST['deposit_balance_days'] ?? 7 );
+        update_option( 'mbs_deposit_balance_days', max( 1, min( 90, $deposit_days ) ) );
+
+        // Pricing tiers
+        if ( isset( $_POST['pricing_tiers'] ) && is_array( $_POST['pricing_tiers'] ) ) {
+            $tiers = array();
+            foreach ( $_POST['pricing_tiers'] as $tier_data ) {
+                $key        = sanitize_key( $tier_data['key'] ?? '' );
+                $label      = sanitize_text_field( $tier_data['label'] ?? '' );
+                $multiplier = floatval( $tier_data['multiplier'] ?? 1.0 );
+                if ( empty( $key ) || empty( $label ) ) continue;
+                $tiers[ $key ] = array(
+                    'label'      => $label,
+                    'multiplier' => max( 0, $multiplier ),
+                );
+            }
+            if ( ! empty( $tiers ) ) {
+                update_option( 'mbs_pricing_tiers', $tiers );
             }
         }
 

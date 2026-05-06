@@ -212,6 +212,11 @@ jQuery(function ($) {
         var spaceCost  = 0;
         var spaceLabel = 'Space hire';
 
+        // Get pricing tier and multiplier
+        var tier = NMS.pricing_tier || 'standard';
+        var tiers = NMS.pricing_tiers || {};
+        var multiplier = (tiers[tier] && tiers[tier].multiplier) ? parseFloat(tiers[tier].multiplier) : 1.0;
+
         // Calculate number of days
         var dateFrom = $('#nms-date').val();
         var dateTo   = $('#nms-date-end').val() || dateFrom;
@@ -222,8 +227,15 @@ jQuery(function ($) {
         }
 
         if (info) {
-            var rateHourly = parseFloat(info.rate_hourly || info.rate || 0);
-            var rateDaily  = parseFloat(info.rate_daily || 0);
+            // Check for tier-specific rates first, then apply multiplier to standard rate
+            var rateHourlyKey = 'rate_hourly_' + tier;
+            var rateDailyKey  = 'rate_daily_' + tier;
+            var rateHourly = (info[rateHourlyKey] && parseFloat(info[rateHourlyKey]) > 0)
+                ? parseFloat(info[rateHourlyKey])
+                : (parseFloat(info.rate_hourly || info.rate || 0) * multiplier);
+            var rateDaily = (info[rateDailyKey] && parseFloat(info[rateDailyKey]) > 0)
+                ? parseFloat(info[rateDailyKey])
+                : (parseFloat(info.rate_daily || 0) * multiplier);
 
             if (allDay) {
                 spaceCost  = rateDaily * numDays;
@@ -239,7 +251,7 @@ jQuery(function ($) {
                 var effectiveDays = numDays;
                 if (isOvernight && numDays === 2) effectiveDays = 1;
                 spaceCost  = hrs * rateHourly * effectiveDays;
-                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(0) + (effectiveDays > 1 ? ' × ' + effectiveDays + ' days' : '') + ')' : '');
+                spaceLabel = space + (hrs > 0 ? ' (' + hrs + ' hr' + (hrs !== 1 ? 's' : '') + ' × £' + rateHourly.toFixed(2) + (effectiveDays > 1 ? ' × ' + effectiveDays + ' days' : '') + ')' : '');
             }
         }
 
@@ -273,6 +285,27 @@ jQuery(function ($) {
         $('#nms-cost-kitchen-row').toggle(kitchen && !isScoutUse);
         if (kitchen && !isScoutUse) {
             $('#nms-cost-kitchen-row').find('span').last().text('£' + total2dp(kitchenPrice));
+        }
+
+        // Show tier label if not standard
+        if (tier !== 'standard' && tiers[tier] && !isScoutUse) {
+            $('#nms-cost-tier-row').show().find('span').first().text('Pricing: ' + tiers[tier].label);
+        } else {
+            $('#nms-cost-tier-row').hide();
+        }
+
+        // Show deposit info if applicable
+        var depositSettings = NMS.deposit_settings || {};
+        if (depositSettings.enabled && !isScoutUse && grandTotal > 0 && dateFrom) {
+            var daysUntil = (new Date(dateFrom + 'T00:00:00') - new Date()) / 86400000;
+            if (daysUntil > (depositSettings.balance_days || 7)) {
+                var depositAmt = Math.round(grandTotal * (depositSettings.percentage || 25) / 100 * 100) / 100;
+                $('#nms-cost-deposit-row').show().find('span').last().text('£' + total2dp(depositAmt) + ' deposit due now');
+            } else {
+                $('#nms-cost-deposit-row').hide();
+            }
+        } else {
+            $('#nms-cost-deposit-row').hide();
         }
 
         // Show recurring breakdown

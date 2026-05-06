@@ -55,6 +55,9 @@ class MBS_Public {
                 'portal_url'      => $portal_url,
                 'is_scout_volunteer' => self::is_scout_volunteer(),
                 'calendar_mode'   => has_shortcode( $post->post_content, 'mathlin_booking' ) ? 'booking' : 'readonly',
+                'pricing_tier'    => MBS_Bookings::get_user_tier(),
+                'pricing_tiers'   => MBS_Bookings::get_pricing_tiers(),
+                'deposit_settings' => MBS_Bookings::get_deposit_settings(),
             ) );
         }
     }
