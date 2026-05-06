@@ -224,6 +224,17 @@ class MBS_Email {
         return array( $filepath );
     }
 
+    /**
+     * Public wrapper for generating invoice attachments.
+     * Used by modification approval emails to attach updated invoices.
+     *
+     * @param  object $booking  Booking object
+     * @return array            Array of file paths for wp_mail attachments
+     */
+    public static function generate_invoice_attachment_for( $booking ) {
+        return self::generate_invoice_attachment( $booking );
+    }
+
     private static function booking_table( $b ) {
         $time = ( $b['space'] === 'Outdoor Area' ) ? 'All day' : ( $b['start_time'] . ' – ' . $b['end_time'] );
         return self::table_html( $b['ref'], $b['space'], $b['booking_date'], $time, $b['attendees'], $b['purpose'], $b['amount'] );

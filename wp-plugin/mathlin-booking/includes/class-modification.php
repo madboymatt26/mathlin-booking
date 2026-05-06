@@ -315,6 +315,7 @@ class MBS_Modification {
         $admin_email = MBS_Bookings::get_admin_email();
         $logo        = MBS_Email_Templates::get_logo_html();
         $new_amount  = (float) $booking->amount;
+        $bank        = MBS_Bookings::get_bank_details();
 
         $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
         $body .= '<div style="background:#2ecc71;padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">' . $logo;
@@ -323,19 +324,32 @@ class MBS_Modification {
         $body .= '<h2 style="color:#2ecc71;">Change Approved</h2>';
         $body .= nl2br( esc_html( $body_text ) );
 
+        // Updated invoice number for reference
+        $body .= '<p style="margin-top:12px;"><strong>Invoice Number:</strong> ' . esc_html( $booking->invoice_number ) . '</p>';
+
         $diff = $new_amount - (float) $old_amount;
         if ( abs( $diff ) > 0.01 ) {
             if ( $diff > 0 ) {
                 $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px;margin:12px 0;color:#991b1b;"><strong>Additional amount due: &pound;' . number_format( $diff, 2 ) . '</strong></div>';
 
-                // Add Pay Now button if WooCommerce is available and there's a balance due
+                // BACS payment details
+                if ( ! empty( $bank['sort_code'] ) && ! empty( $bank['account_number'] ) ) {
+                    $body .= '<div style="background:#f5f0ff;border:1px solid #e0d0f0;border-radius:6px;padding:12px;margin:12px 0;">';
+                    $body .= '<strong>Payment details:</strong><br>';
+                    $body .= 'Sort Code: ' . esc_html( $bank['sort_code'] ) . '<br>';
+                    $body .= 'Account: ' . esc_html( $bank['account_number'] ) . '<br>';
+                    $body .= 'Reference: ' . esc_html( $booking->invoice_number );
+                    $body .= '</div>';
+                }
+
+                // Add Pay Now button if WooCommerce is available
                 if ( MBS_Woo_Payment::is_available() ) {
                     $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
                     if ( $pay_url ) {
                         $body .= '<p style="text-align:center;margin:24px 0;">';
                         $body .= '<a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">💳 Pay Now Online</a>';
                         $body .= '</p>';
-                        $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details on your invoice.</p>';
+                        $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details above.</p>';
                     }
                 }
             } else {
@@ -345,10 +359,13 @@ class MBS_Modification {
 
         $body .= '</div></body></html>';
 
+        // Generate updated invoice attachment (reflects new amount)
+        $attachments = MBS_Email::generate_invoice_attachment_for( $booking );
+
         MBS_Email_Queue::send( $booking->email, $subject, $body, array(
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . $org['name'] . ' <' . $admin_email . '>',
-        ) );
+        ), $attachments );
     }
 
     private static function notify_booker_rejected( $booking, $type, $reason ) {
