@@ -2,7 +2,7 @@
 
 A comprehensive WordPress venue booking plugin built for Needham Market Scout Group, with Home Assistant integration.
 
-**Current Version:** 2.13.2  
+**Current Version:** 3.0.0  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -14,10 +14,10 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 
 ### Public Booking System
 - Interactive availability calendar with blocked date indicators
-- Booking form with real-time cost calculation
+- Booking form with real-time cost calculation (tier-aware)
 - Multi-day and full-day booking support
 - Recurring weekly bookings (up to 52 weeks)
-- Conflict detection prevents double bookings
+- Conflict detection prevents double bookings (including parent/child space bundling)
 - Configurable minimum notice period
 - Custom form fields (admin-configurable)
 - Terms & Conditions checkbox
@@ -25,6 +25,8 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 - Scout Use (free) bookings for volunteers
 - Honeypot spam prevention on booking form
 - Mobile-optimised responsive design
+- Deposit amount shown on booking form when applicable
+- Venue info page with configurable booking notice and facilities
 
 ### Customer Accounts (Hirer Portal)
 - Self-service registration and login (`[mathlin_portal]`)
@@ -44,16 +46,32 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 - Occupancy/utilisation reports per space
 - Audit log tracking all actions with user and timestamp
 - Dashboard widget on wp-admin home
+- Financial balance indicator (Balance Due / Refund Due) on booking detail
+- Mark Balance Paid / Mark Refunded action buttons
 
 ### Financial
 - Configurable spaces and pricing (hourly + daily rates)
+- **Tiered pricing** (Standard, Community, Commercial — configurable multipliers)
+- **Deposit management** (configurable percentage, balance due window)
 - Kitchen add-on pricing
 - WooCommerce payment integration (Stripe, PayPal, etc.)
-- Invoice generation with PDF email attachment
-- Automatic payment chasing (3 escalating levels)
+- Deposit-aware WooCommerce checkout (pays deposit or full balance)
+- Invoice generation with HTML email attachment
+- Automatic payment chasing (3 escalating levels + deposit balance reminders)
 - Accounting export (Xero, Sage, QuickBooks CSV)
-- Bank transfer details on invoices
+- Bank transfer details on invoices and modification emails
 - Financial year revenue tracking (April–March)
+
+### Modification & Cancellation Requests
+- Bookers can request changes via secure link
+- Proper approval queue with pending count badge
+- Admin approve/reject with one click
+- Auto-applies changes on approval (with conflict check)
+- **Auto-confirm on approval** (no drop to pending)
+- Smart status transition: keeps `paid` if cost decreased, sets `confirmed` if cost increased
+- Approval email includes BACS details + Pay Now button when balance due
+- Updated invoice attached to all modification approval emails
+- Rejection emails with optional reason
 
 ### Email System
 - 14 editable email templates with placeholder tags
@@ -62,19 +80,20 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 - Booking reminders (configurable hours before)
 - Multi-admin notifications
 - Recurring booking summary emails
+- Booking notice preserves line breaks (nl2br)
 
-### Modification & Cancellation Requests
-- Bookers can request changes via secure link
-- Proper approval queue with pending count badge
-- Admin approve/reject with one click
-- Auto-applies changes on approval (with conflict check)
-- Rejection emails with optional reason
+### Space Bundling (Parent/Child)
+- Spaces can be defined as parent or child
+- Booking a parent space blocks all child spaces
+- Booking a child space blocks the parent space
+- Configured via "Parent Space" column in admin settings
 
 ### Integrations
 - Home Assistant: webhook on confirmation + REST API polling
-- WooCommerce: Pay Now button in emails, auto-status update
+- WooCommerce: Pay Now button in emails, auto-status update, deposit support
 - iCal: downloadable .ics files + subscribable calendar feed
 - GitHub: auto-update from private repository releases
+- OSM (Online Scout Manager): push financial records on payment
 
 ### Security & Privacy
 - GDPR right-to-erasure (WordPress Privacy tools integration)
@@ -100,6 +119,8 @@ A comprehensive WordPress venue booking plugin built for Needham Market Scout Gr
 | `[mathlin_calendar]` | Calendar only (no form) |
 | `[mathlin_status]` | Booking status lookup + modification form |
 | `[mathlin_portal]` | Hirer login/register + dashboard |
+| `[mathlin_terms]` | Terms & Conditions page |
+| `[mathlin_venue_info]` | Venue information, pricing, facilities |
 
 ## REST API
 
@@ -114,10 +135,42 @@ Base: `/wp-json/mathlin/v1/`
 | `GET /bookings/ical` | None | iCal feed |
 | `GET /bookings` | Admin | All bookings |
 | `POST /bookings/{ref}/status` | Admin | Update status |
+| `GET /bookings/{ref}/payment-url` | Admin | Generate payment URL |
 
 ---
 
 ## Changelog
+
+### v3.0.0 (Major Feature Release)
+- **New: Deposit Management** — configurable deposit percentage (default 25%), balance due window (default 7 days before event), new `deposit_paid` status, WooCommerce deposit-aware checkout, balance chase reminders
+- **New: Tiered Pricing** — Standard/Community/Commercial tiers with configurable multipliers, tier-specific rates per space, user profile tier assignment, all 4 cost calculators updated
+- **New: Space Bundling** — parent/child space relationships, booking a parent blocks children and vice versa, configured via settings UI
+- New DB columns: `deposit_paid`, `pricing_tier`
+- Admin settings: Deposit Management card, Pricing Tiers card, Parent Space column on spaces table
+- User profile: Pricing Tier dropdown (admin-editable)
+
+### v2.15.3
+- **Fix:** TinyMCE triggerSave before collecting form values — booking notice and facilities now persist on save
+- **Fix:** Version bump ensures browser cache-busting of admin.js
+- **Fix:** Booking notice preserves line breaks (nl2br) on venue info page and booking form
+
+### v2.15.2
+- **New:** Configurable Booking Notice field (displayed on booking form + venue info page)
+- **New:** Configurable Facilities WYSIWYG field (displayed on venue info page)
+- **New:** Make a Booking / Book the Hall Now buttons on venue info page
+- **Fix:** Default venue capacity changed from 80 to 100
+
+### v2.15.1
+- Full 32-point Terms & Conditions, T&C in emails and admin view
+
+### v2.15.0
+- **New:** Venue & Legal settings section
+- **New:** `[mathlin_terms]` shortcode for Terms & Conditions page
+- **New:** `[mathlin_venue_info]` shortcode for venue information page
+
+### v2.14.0
+- **New:** Read-only calendar mode for `[mathlin_calendar]` shortcode
+- **New:** Unified `[mathlin_manage]` shortcode
 
 ### v2.13.2
 - Booking managers now see "My Hall Bookings" tab in WooCommerce My Account
@@ -126,145 +179,39 @@ Base: `/wp-json/mathlin/v1/`
 - **Fix:** Booking managers no longer blocked from wp-admin by WooCommerce
 - **Fix:** Manager login redirects to admin bookings page (not frontend portal)
 - **Fix:** /my-account/hall-bookings/ 404 resolved — endpoint auto-registers on update
-- Auto-flush rewrite rules on version change (no manual permalink save needed)
 
 ### v2.13.0
 - **New:** WooCommerce UX integration for hirers
 - Smart login redirect: hirers → portal, managers → admin, others → default
 - "My Hall Bookings" tab in WooCommerce My Account menu
-- Irrelevant tabs (Downloads, Addresses) removed for hirer role
 
 ### v2.12.0 (Security & Performance Release)
-- **[SEC-001]** WooCommerce refund handler: paid status reverts to confirmed on refund
-- **[SEC-002]** GDPR right-to-erasure via WordPress Privacy tools
-- **[SEC-003]** Email queue stalled entries force-failed after 7 days
-- **[SEC-004]** Hirer portal link_existing_bookings restricted to mbs_hirer role
-- **[SEC-005]** Payment for cancelled booking: critical warning on WooCommerce order
-- **[SEC-007]** Database index on email column for hirer portal performance
-- **[SEC-009]** Composite index for payment chaser cron query
-- **[SEC-010]** Audit log IP spoofing prevention (REMOTE_ADDR only)
+- WooCommerce refund handler, GDPR right-to-erasure, email queue cleanup
+- Hirer portal security, payment for cancelled booking warning
+- Database indexes for performance
 
 ### v2.11.0
-- **New:** OSM (Online Scout Manager) integration — push financial records when bookings are paid
-- Reuses GilbertWeb Connector OAuth tokens (no double-authentication)
-- Standalone OAuth mode available if GilbertWeb Connector not installed
-- Sandbox mode: logs JSON payloads to error_log instead of live API calls
-- Admin settings page: Scout Bookings → OSM Integration
-- Configurable section ID, category ID, account ID, description template
-- `mbs_booking_paid` action hook fires on all paid status transitions
+- OSM (Online Scout Manager) integration
 
-### v2.10.3
-- **Critical Fix:** WooCommerce payment no longer fails to update booking status
-- Hook registration moved from `plugins_loaded` to `init` to guarantee WooCommerce is loaded
-- Added `woocommerce_payment_complete` hook for direct payment gateways (Stripe, etc.)
-- Order notes added when booking is auto-marked as Paid
-- Duplicate processing guard via `_mbs_payment_processed` order meta
-- Booking ref saved as order-level meta for easier admin lookup
+### v2.10.x
+- WooCommerce payment fixes, calendar refresh, admin AJAX fixes
 
-### v2.10.2
-- **Critical Fix:** WooCommerce payment product changed from `private` to `publish` status — guests can now complete checkout
-- Product uses `catalog_visibility: hidden` so it doesn't appear in the shop
-- Auto-migrates existing private product to publish on next use
-- Fixed stray `date()` call in WooCommerce thank-you message
+### v2.9.x
+- Timezone safety, honeypot spam prevention, mobile responsive design
+- Pending bookings badge, PHP 8.x compatibility
 
-### v2.10.1
-- **Fix:** Calendar dots now refresh after a booking is submitted
-- **Fix:** Calendar auto-refreshes when sidebar shows bookings not reflected in dots (stale data detection)
-
-### v2.10.0
-- **Critical Fix:** `can_manage_bookings()` had infinite recursion (called itself instead of `current_user_can`), causing all admin AJAX handlers to crash silently
-- **Fix:** All `wp_die()` calls in AJAX handlers replaced with `wp_send_json_error()` for proper JSON responses
-- **Fix:** Mobile password input on account creation prompt now renders correctly (was collapsing to tiny square)
-- **Fix:** Added `.fail()` error handlers to all admin and public AJAX calls — buttons now reset on network errors
-- **Fix:** Stray `date()` call in edit notification email replaced with `wp_date()`
-
-### v2.9.3
-- **New:** Pending bookings notification badge on admin menu and "All Bookings" submenu
-- Badge only shows for `pending` status, not other statuses
-
-### v2.9.2
-- **Fix:** Fatal syntax error in `class-hirer-portal.php` — extra closing brace prematurely ended the class
-
-### v2.9.1
-- **Fix:** Critical error caused by PHP reserved keyword `NAMESPACE` used as class constant
-- Renamed to `API_NAMESPACE` in REST API class for PHP 8.x compatibility
-
-### v2.9.0
-- **Security:** All date/time calculations now use WordPress timezone (wp_date) instead of server UTC
-- **Security:** Honeypot spam prevention on public booking form
-- **Mobile:** Comprehensive responsive CSS for phones and tablets
-- **Mobile:** iOS zoom prevention on form inputs (font-size: 16px)
-- **Mobile:** Full-width buttons and single-column layout on small screens
-
-### v2.8.1
-- **New:** Booking Manager role for volunteers
-- **Security:** Delete button restricted to Administrators only
-- **UX:** Dashboard alerts for failed emails and pending requests
-
-### v2.8.0
-- **New:** Bulk actions on admin bookings list (confirm, pay, cancel, archive)
-- State transition validation prevents invalid bulk operations
+### v2.8.x
+- Booking Manager role, bulk actions, delete restriction
 
 ### v2.7.0
-- **New:** Custom admin price override
-- **Docs:** Complete README rewrite + AI-CONTEXT.md for LLM consumption
+- Custom admin price override, README + AI-CONTEXT.md
 
-### v2.6.1
-- **Fix:** Overnight booking (22:00–02:00) spanning 2 calendar dates no longer double-counts days
-- Rule: if overnight AND date span = 2, treat as 1 continuous block
-
-### v2.6.0
-- **Fix:** Midnight-spanning bookings (22:00–01:00) now calculate hours correctly
-- **Fix:** Multi-day hourly bookings now multiply hours × days
-- **Fix:** Modification approval checks for conflicts before applying
-- **Fix:** Blocked date warning on date picker input
-- **Fix:** Calendar loading state during navigation
-- **Enhancement:** Recurring email includes total series cost
-- **Enhancement:** Scout use toggle noted in audit log
-
-### v2.5.2
-- All 14 email types now use editable templates
-
-### v2.5.1
-- Configurable logo upload for all emails
-
-### v2.5.0
-- Proper approval queue for modification/cancellation requests
-- Pending count badge on admin menu
-
-### v2.4.x
-- Editable booking details with live cost recalculation
-- Series grouping in admin list (collapsible)
-- Recurring booking summary email
-- Fatal error fix in admin list (PHP syntax)
-
-### v2.3.0
-- Admin can edit all booking fields
-- Live cost preview with price change warnings
-- Notification email on edit with price difference
-
-### v2.2.x
-- Scout Use (free) bookings for volunteers
-- Recurring booking cost preview
-- Payment links work cross-device (token-based)
-
-### v2.1.x
-- Hirer portal with login/register
-- Public/private event visibility
-- Occupancy reports + accounting export
-- Quick account creation after booking
-- Login prompt on booking form
-
-### v2.0.x
-- Email queue with retry
-- Custom form fields
-- Booking modification requests
-- Analytics dashboard with charts
+### v2.0–2.6
+- Email queue, custom fields, modification requests, analytics
+- Scout Use, recurring bookings, hirer portal, accounting export
+- Overnight booking fix, multi-day hourly fix
 
 ### v1.x
-- Core booking system, calendar, invoicing
-- Home Assistant integration
-- Conflict detection, recurring bookings
-- Payment chasing, CSV export, dashboard widget
-- WooCommerce payments, auto-archive
-- Configurable email templates
+- Core booking system, calendar, invoicing, Home Assistant integration
+- Conflict detection, recurring bookings, payment chasing
+- WooCommerce payments, auto-archive, email templates

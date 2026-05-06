@@ -1,4 +1,4 @@
-# AI-CONTEXT.md — Mathlin Booking System (v2.13.2)
+# AI-CONTEXT.md — Mathlin Booking System (v3.0.0)
 
 This document is designed for LLMs and AI agents to read before modifying this codebase. It maps the architecture, file relationships, and critical business logic rules.
 
@@ -20,7 +20,20 @@ WordPress plugin using custom database tables (not custom post types). No extern
 
 ### WordPress Options (wp_options)
 
-All prefixed `mbs_`. Key ones: `mbs_spaces` (JSON), `mbs_kitchen_price`, `mbs_admin_email`, `mbs_min_notice_days`, `mbs_ha_webhook_url`, `mbs_org_name`, `mbs_org_logo_url`, `mbs_scout_volunteer_emails`, `mbs_github_token`.
+All prefixed `mbs_`. Key ones:
+- `mbs_spaces` (JSON) — space config with rates, capacity, parent
+- `mbs_kitchen_price`, `mbs_admin_email`, `mbs_min_notice_days`
+- `mbs_ha_webhook_url`, `mbs_org_name`, `mbs_org_logo_url`
+- `mbs_scout_volunteer_emails`, `mbs_github_token`
+- `mbs_deposit_enabled`, `mbs_deposit_percentage`, `mbs_deposit_balance_days`
+- `mbs_pricing_tiers` (JSON) — tier definitions with labels and multipliers
+- `mbs_venue_capacity`, `mbs_curfew_saturday`, `mbs_curfew_sunday`
+- `mbs_booking_notice`, `mbs_facilities_text`, `mbs_terms_text`
+
+### User Meta
+
+- `mbs_pricing_tier` — assigned pricing tier (standard, community, commercial, etc.)
+- `mbs_scout_volunteer` — flag for scout volunteer status
 
 ---
 
@@ -28,15 +41,15 @@ All prefixed `mbs_`. Key ones: `mbs_spaces` (JSON), `mbs_kitchen_price`, `mbs_ad
 
 ```
 mathlin-booking/
-├── mathlin-booking.php              Main plugin file, bootstraps everything
+├── mathlin-booking.php              Main plugin file, bootstraps everything + user profile hooks
 ├── uninstall.php                    Cleanup on deletion
 ├── README.md                        User documentation
 ├── AI-CONTEXT.md                    This file
 │
 ├── includes/
 │   ├── class-database.php           Table creation + migrations
-│   ├── class-bookings.php           ★ CRUD + pricing engine (calculate_cost)
-│   ├── class-email.php              All email sending (uses templates)
+│   ├── class-bookings.php           ★ CRUD + pricing engine + deposits + tiers + space bundling
+│   ├── class-email.php              All email sending (uses templates) + invoice attachment helper
 │   ├── class-email-templates.php    Template storage + placeholder replacement
 │   ├── class-email-queue.php        Retry queue for failed emails
 │   ├── class-invoice.php            Invoice HTML generation
@@ -44,15 +57,15 @@ mathlin-booking/
 │   ├── class-homeassistant.php      HA webhook + data formatting
 │   ├── class-blocked-dates.php      Blocked date management
 │   ├── class-reminders.php          WP-Cron booking reminders
-│   ├── class-payment-chaser.php     Overdue payment auto-chase
+│   ├── class-payment-chaser.php     Overdue payment auto-chase + deposit balance reminders
 │   ├── class-auto-archive.php       WP-Cron auto-archive past bookings
 │   ├── class-csv-export.php         CSV download handler
 │   ├── class-dashboard-widget.php   wp-admin home widget
 │   ├── class-audit-log.php          Action logging
 │   ├── class-custom-fields.php      Admin-configurable form questions
-│   ├── class-modification.php       ★ Modification request system + approval
+│   ├── class-modification.php       ★ Modification request system + approval + auto-confirm
 │   ├── class-hirer-portal.php       Customer accounts + dashboard
-│   ├── class-woo-payment.php        WooCommerce payment integration
+│   ├── class-woo-payment.php        ★ WooCommerce payment (deposit-aware)
 │   ├── class-accounting-export.php  Xero/Sage/QuickBooks CSV
 │   ├── class-ical.php               iCal file generation
 │   ├── class-updater.php            GitHub release auto-updater
@@ -60,15 +73,15 @@ mathlin-booking/
 │   └── class-woo-ux.php             WooCommerce UX for hirers + managers
 │
 ├── admin/
-│   ├── class-admin.php              ★ Admin menu, AJAX handlers, edit booking
-│   ├── admin.js                     Admin JavaScript (all AJAX calls)
+│   ├── class-admin.php              ★ Admin menu, AJAX handlers, edit booking, mark refunded
+│   ├── admin.js                     Admin JavaScript (all AJAX calls, tier/space management)
 │   ├── admin.css                    Admin styles
 │   └── views/
 │       ├── list.php                 Bookings list (with series grouping)
-│       ├── single.php               ★ Booking detail + edit mode + cost calc JS
+│       ├── single.php               ★ Booking detail + edit mode + balance indicator + cost calc JS
 │       ├── invoice.php              Invoice display/print
 │       ├── calendar.php             Admin calendar view
-│       ├── settings.php             Plugin settings
+│       ├── settings.php             Plugin settings (spaces, tiers, deposits, venue, rules)
 │       ├── email-templates.php      Email template editor
 │       ├── analytics.php            Charts + reports
 │       ├── archived.php             Archived bookings
@@ -77,11 +90,11 @@ mathlin-booking/
 │       └── requests.php             Modification request queue
 │
 └── public/
-    ├── class-public.php             ★ Shortcodes, AJAX handlers, validation
-    ├── public.js                    ★ Calendar, cost calculator, form logic
+    ├── class-public.php             ★ Shortcodes, AJAX handlers, validation, tier/deposit data
+    ├── public.js                    ★ Calendar, cost calculator (tier-aware), form logic
     ├── public.css                   Frontend styles
     └── views/
-        ├── booking-form.php         Full booking form
+        ├── booking-form.php         Full booking form (with booking notice)
         ├── calendar.php             Calendar shortcode
         ├── booking-status.php       Status lookup page
         ├── modification-form.php    ★ Change request form + cost calc JS
@@ -106,15 +119,24 @@ Files marked ★ are the most critical and most frequently modified.
 
 **Any change to pricing logic MUST be applied to all 4 locations.**
 
-### Pricing Rules
+### Pricing Rules (v3.0.0 — Tier-Aware)
 
 ```
 if (scout_use) → cost = 0 (free)
 
+// Determine rate based on tier
+tier = user's assigned tier (default: 'standard')
+multiplier = tier multiplier (e.g. 1.0, 0.75, 1.5)
+
+// Check for tier-specific rate first (e.g. rate_hourly_community)
+// If not set, apply multiplier to standard rate
+
 if (all_day):
-    cost = rate_daily × num_days
+    rate = rate_daily_[tier] OR (rate_daily × multiplier)
+    cost = rate × num_days
 
 if (hourly):
+    rate = rate_hourly_[tier] OR (rate_hourly × multiplier)
     hours = ceil((end_time - start_time) / 3600)
     
     if (end_time <= start_time):  // overnight booking
@@ -124,9 +146,10 @@ if (hourly):
     if (overnight AND num_days == 2):
         effective_days = 1  // single continuous block, not 2 separate days
     
-    cost = hours × rate_hourly × effective_days
+    cost = hours × rate × effective_days
 
 cost += kitchen_price (if kitchen selected)
+cost = round(cost, 2)
 ```
 
 ### The Overnight Rule (CRITICAL)
@@ -145,15 +168,123 @@ For single-day bookings, `end_date` equals `start_date`, so `num_days = 1`.
 
 ---
 
+## Deposit Management
+
+### Configuration (wp_options)
+- `mbs_deposit_enabled` — 0 or 1
+- `mbs_deposit_percentage` — default 25 (percent of total)
+- `mbs_deposit_balance_days` — default 7 (days before event when balance is due)
+
+### Logic
+```
+if deposit_enabled:
+    if days_until_event > balance_days:
+        payment_amount = total × (percentage / 100)   // deposit only
+        on_payment → status = 'deposit_paid', deposit_paid = amount
+    else:
+        payment_amount = total                         // full payment required
+        on_payment → status = 'paid'
+
+if status == 'deposit_paid':
+    payment_amount = total - deposit_paid              // remaining balance
+    on_payment → status = 'paid'
+```
+
+### Payment Chaser Integration
+The payment chaser now also queries `deposit_paid` bookings where `booking_date <= today + balance_days`, sending balance reminders with pay links.
+
+---
+
+## Tiered Pricing
+
+### Configuration
+- `mbs_pricing_tiers` option stores tier definitions:
+  ```json
+  {
+    "standard": {"label": "Standard", "multiplier": 1.0},
+    "community": {"label": "Charity / Community", "multiplier": 0.75},
+    "commercial": {"label": "Commercial", "multiplier": 1.5}
+  }
+  ```
+- User meta `mbs_pricing_tier` stores the assigned tier per user
+- Spaces can optionally define `rate_hourly_[tier_key]` and `rate_daily_[tier_key]` for explicit tier rates
+
+### Resolution Order
+1. Check for tier-specific rate on the space (e.g. `rate_hourly_community`)
+2. If not set, apply tier multiplier to the standard rate
+3. Guests (not logged in) always get `standard` tier
+
+### Admin Assignment
+- WordPress user profile page shows "Pricing Tier" dropdown (admin-only)
+- Stored as `mbs_pricing_tier` user meta
+
+---
+
+## Space Bundling (Parent/Child)
+
+### Configuration
+Each space in `mbs_spaces` can have a `parent` field:
+```json
+{
+  "Whole Headquarters": {"rate_hourly": 50, "rate_daily": 300, "parent": null},
+  "Main Scout Hall": {"rate_hourly": 25, "rate_daily": 150, "parent": "Whole Headquarters"},
+  "Meeting Room": {"rate_hourly": 12, "rate_daily": 70, "parent": "Whole Headquarters"}
+}
+```
+
+### Conflict Detection
+`check_conflicts()` calls `get_related_spaces()` which returns:
+- If booking a **child** → returns the parent space name
+- If booking a **parent** → returns all child space names
+
+Conflicts are checked against the requested space AND all related spaces.
+
+---
+
 ## Booking Status Flow
 
 ```
 pending → confirmed → paid → archived
-                   ↘ cancelled → archived
-                   ↗ (reopen)
+              ↓           ↗
+         deposit_paid ──┘
+              ↓
+         cancelled → archived
+              ↗ (reopen)
 ```
 
-Valid statuses: `pending`, `confirmed`, `cancelled`, `archived`, `paid`
+Valid statuses: `pending`, `confirmed`, `deposit_paid`, `cancelled`, `archived`, `paid`
+
+---
+
+## Modification Approval Flow (v2.15.3+)
+
+When an admin approves a modification:
+1. Changes are applied to the booking (with conflict check)
+2. Cost is recalculated
+3. **Status is set automatically** (no drop to pending):
+   - If previously `paid` and new cost ≤ old cost → stays `paid`
+   - If new cost > paid amount → set to `confirmed`
+4. Approval email sent with:
+   - BACS payment details (if balance due)
+   - Pay Now button (if WooCommerce available and balance due)
+   - Updated invoice attached (always)
+5. Audit log records the transition
+
+---
+
+## Admin Balance Indicator (single.php)
+
+On the booking detail page, if a booking has been paid (via WooCommerce or manually) and the current amount differs from what was paid:
+- **Red alert:** "⚠️ Balance Due: £X" + "Mark Balance Paid" button
+- **Green alert:** "💰 Refund / Credit Due: £X" + "Mark Refunded" button
+
+Payment detection:
+1. Query WooCommerce orders by `_mbs_booking_ref` meta
+2. Sum order totals minus refunds
+3. If no WooCommerce orders but status is `paid`, assume full amount was paid (bank transfer)
+
+"Mark Balance Paid" → sets status to `paid` + sends payment confirmation email
+"Mark Refunded" → sets status to `paid` silently (no email) + audit log entry
 
 ---
 
@@ -180,7 +311,7 @@ Admins can override scout_use when editing a booking (no email check — intenti
 - **Race conditions:** Booking creation uses `START TRANSACTION` / `COMMIT` with conflict re-check inside the transaction
 - **Rate limiting:** Hirer registration limited to 5 per IP per hour via transients
 - **Honeypot:** Hidden form field `mbs_website_url` — if filled (by bots), submission silently returns fake success
-- **WooCommerce price:** Always re-read from database in `set_cart_item_price()`, never from cart session
+- **WooCommerce price:** Always re-read from database in `set_cart_item_price()`, never from cart session (deposit-aware)
 - **Booking lookup:** Requires both reference AND email to prevent enumeration
 - **Timezone:** All date calculations use `wp_date()` / `current_time()` to respect WordPress timezone settings (BST/GMT safe)
 
@@ -199,14 +330,6 @@ Admins can override scout_use when editing a booking (no email check — intenti
 | SEC-009 | idx_chase composite index for payment chaser | class-database.php |
 | SEC-010 | Audit log uses REMOTE_ADDR only (no X-Forwarded-For) | class-audit-log.php |
 
-### GDPR Implementation
-- WordPress Privacy Eraser registered via `wp_privacy_personal_data_erasers`
-- WordPress Privacy Exporter registered via `wp_privacy_personal_data_exporters`
-- Erasure anonymises PII (name→"Anonymised", email→"erased-{id}@anonymised.invalid")
-- Financial data (amounts, dates, spaces) preserved for audit trail
-- Audit log IPs scrubbed, email queue entries deleted
-- Admin uses: Tools → Erase Personal Data
-
 ---
 
 ## Email System
@@ -217,6 +340,9 @@ Placeholders: `{name}`, `{ref}`, `{space}`, `{date}`, `{time}`, `{amount}`, `{in
 
 All emails route through `MBS_Email_Queue::send()` which wraps `wp_mail()` with automatic retry on failure.
 
+### Invoice Attachment
+`MBS_Email::generate_invoice_attachment_for($booking)` — public helper that generates an HTML invoice file and returns the file path array for wp_mail attachments. Used by confirmation emails and modification approval emails.
+
 ---
 
 ## WP-Cron Jobs
@@ -224,7 +350,7 @@ All emails route through `MBS_Email_Queue::send()` which wraps `wp_mail()` with 
 | Hook | Schedule | Class | Purpose |
 |---|---|---|---|
 | `mbs_daily_reminders` | Daily 7am | MBS_Reminders | Booking reminder emails |
-| `mbs_daily_payment_chase` | Daily 9am | MBS_Payment_Chaser | Overdue payment reminders |
+| `mbs_daily_payment_chase` | Daily 9am | MBS_Payment_Chaser | Overdue payment + deposit balance reminders |
 | `mbs_daily_auto_archive` | Daily 2am | MBS_Auto_Archive | Archive past bookings |
 | `mbs_process_email_queue` | Hourly | MBS_Email_Queue | Retry failed emails |
 
@@ -242,6 +368,26 @@ Separate codebase in `ha-integration/custom_components/mathlin_booking/`.
 
 ---
 
+## WooCommerce Payment (v3.0.0 — Deposit-Aware)
+
+File: `includes/class-woo-payment.php`
+
+### Payment Flow
+1. `generate_payment_url($booking)` creates a checkout URL with ref + token
+2. `handle_payment_redirect()` determines payment amount:
+   - If `deposit_paid` status → charges remaining balance
+   - If `confirmed` + deposit enabled + event far away → charges deposit only
+   - Otherwise → charges full amount
+3. `set_cart_item_price()` re-reads from DB (deposit-aware, prevents tampering)
+4. `on_order_completed()` detects payment type:
+   - If amount < 90% of total and deposit enabled → sets `deposit_paid` status
+   - Otherwise → sets `paid` status
+
+### Allowed Statuses for Payment
+`confirmed` and `deposit_paid` (expanded from just `confirmed`)
+
+---
+
 ## WooCommerce UX Integration (v2.13.x)
 
 File: `includes/class-woo-ux.php`
@@ -250,19 +396,11 @@ File: `includes/class-woo-ux.php`
 - `mbs_hirer` role → Frontend Bookings Portal page
 - `mbs_manage_bookings` capability → `wp-admin/admin.php?page=mathlin-booking`
 - All other roles → Default WordPress/WooCommerce behaviour
-- Explicit `redirect_to` parameters are never overridden
-
-### WooCommerce Admin Access
-- `woocommerce_prevent_admin_access` filter returns `false` for `mbs_manage_bookings` cap
-- `woocommerce_disable_admin_bar` filter returns `false` for managers
-- Without this, WooCommerce blocks non-shop roles from wp-admin
 
 ### My Account Menu
 - Adds "My Hall Bookings" tab for both hirers AND booking managers
 - Removes Downloads/Addresses tabs for pure hirers only
-- Endpoint: `hall-bookings` (registered via `add_rewrite_endpoint`)
-- Query var registered via `woocommerce_get_query_vars` filter
-- Auto-flushes rewrite rules on version change (no manual permalink save needed)
+- Endpoint: `hall-bookings`
 
 ---
 
@@ -289,9 +427,6 @@ File: `includes/class-woo-ux.php`
 └─────────────────────────────┘         └──────────────────────────────────────┘
 ```
 
-### Smart Gap Detection
-If another booking on the SAME space starts within `gap_minutes` (default 30) of the current booking's end, the `mathlin_booking_end` event is suppressed. This prevents wasteful heat-up/cool-down cycles between back-to-back bookings.
-
 ---
 
 ## Key Conventions
@@ -307,6 +442,7 @@ If another booking on the SAME space starts within `gap_minutes` (default 30) of
 - **Date functions:** ALWAYS use `wp_date()` instead of `date()` for "today" calculations. This ensures BST/GMT correctness.
 - **Capability for booking management:** `mbs_manage_bookings` (not `manage_options`)
 - **Capability for settings/delete:** `manage_options` (admin only)
+- **Pricing tier default:** `standard` (1.0× multiplier)
 
 ---
 
@@ -315,7 +451,7 @@ If another booking on the SAME space starts within `gap_minutes` (default 30) of
 ### Adding a new setting
 1. Add default in the relevant `get_*()` method
 2. Add field to `admin/views/settings.php`
-3. Add to `admin/admin.js` save handler
+3. Add to `admin/admin.js` save handler (in the `$.post` data object)
 4. Add to `admin/class-admin.php` `ajax_save_settings()`
 
 ### Adding a new email type
@@ -335,3 +471,59 @@ If another booking on the SAME space starts within `gap_minutes` (default 30) of
 2. Add migration in `maybe_run_migrations()`
 3. Update `create()` in `class-bookings.php` to include in insert
 4. Update any relevant views/forms
+
+### Adding a new pricing tier
+1. Go to Scout Bookings → Settings → Pricing Tiers
+2. Click "+ Add Tier", enter key (lowercase, no spaces), label, and multiplier
+3. Save settings
+4. Assign to users via their WordPress profile page
+5. Optionally add tier-specific rates to spaces (e.g. `rate_hourly_community`)
+
+### Adding a new space with parent/child bundling
+1. Go to Scout Bookings → Settings → Bookable Spaces
+2. Add the parent space (leave Parent Space blank)
+3. Add child spaces with the parent's name in the "Parent Space" column
+4. Conflict detection will automatically block related spaces
+
+---
+
+## Database Schema (v3.0.0)
+
+### wp_mathlin_bookings
+| Column | Type | Notes |
+|---|---|---|
+| id | BIGINT AUTO_INCREMENT | Primary key |
+| ref | VARCHAR(20) UNIQUE | Booking reference (MBS-XXXXXX) |
+| status | VARCHAR(20) | pending/confirmed/deposit_paid/paid/cancelled/archived |
+| name | VARCHAR(100) | Booker name |
+| organisation | VARCHAR(100) | |
+| email | VARCHAR(150) | |
+| phone | VARCHAR(30) | |
+| address | TEXT | Billing address |
+| space | VARCHAR(60) | Space name |
+| kitchen | TINYINT(1) | Kitchen add-on |
+| booking_date | DATE | Start date |
+| booking_date_end | DATE | End date (multi-day) |
+| all_day | TINYINT(1) | Full day booking |
+| scout_use | TINYINT(1) | Free scout booking |
+| pricing_tier | VARCHAR(30) | Tier applied at booking time |
+| start_time | TIME | |
+| end_time | TIME | |
+| attendees | SMALLINT | |
+| purpose | VARCHAR(255) | |
+| notes | TEXT | Booker notes |
+| amount | DECIMAL(8,2) | Total cost |
+| deposit_paid | DECIMAL(8,2) | Amount paid as deposit |
+| invoice_number | VARCHAR(30) | INV-MBS-XXXXXX |
+| ha_notified | TINYINT(1) | HA webhook sent |
+| reminder_sent | TINYINT(1) | Reminder email sent |
+| chase_count | SMALLINT | Payment chase count |
+| last_chased | DATETIME | Last chase email sent |
+| series_id | VARCHAR(20) | Recurring series ID |
+| admin_notes | TEXT | Internal admin notes |
+| custom_fields | TEXT | JSON custom field responses |
+| modification_token | VARCHAR(64) | Secure token for payment/mod links |
+| is_public | TINYINT(1) | Public event visibility |
+| user_id | BIGINT | WordPress user ID (hirer portal) |
+| created_at | DATETIME | |
+| updated_at | DATETIME | Auto-updated |
