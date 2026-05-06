@@ -107,42 +107,45 @@ class MBS_Payment_Chaser {
         $org         = MBS_Email_Templates::get_org_settings();
         $admin_email = MBS_Bookings::get_admin_email();
 
-        // Determine what's being chased: deposit, balance, or full payment
-        $is_balance_chase  = ( $booking->status === 'deposit_paid' );
-        $deposit_settings  = MBS_Bookings::get_deposit_settings();
-        $is_deposit_chase  = ( $booking->status === 'confirmed' && $deposit_settings['enabled'] && ! MBS_Bookings::requires_full_payment( $booking->booking_date ) );
-        $total_amount      = (float) $booking->amount;
-        $amount_paid_val   = (float) ( $booking->amount_paid ?? 0 );
-        $deposit_amount    = MBS_Bookings::calculate_deposit( $total_amount );
+        // Core calculation: what does the customer actually owe?
+        $total_amount    = (float) $booking->amount;
+        $amount_paid_val = (float) ( $booking->amount_paid ?? 0 );
+        $balance_due     = $total_amount - $amount_paid_val;
 
-        // Use amount - amount_paid for the amount due in all chase scenarios
-        $amount_due = $total_amount - $amount_paid_val;
+        // If nothing is owed, don't chase
+        if ( $balance_due <= 0.01 ) return;
 
-        // If amount_paid is 0 and it's a deposit chase, chase the deposit amount only
-        if ( $amount_paid_val == 0 && $is_deposit_chase ) {
+        // Determine chase type based on what's already been paid
+        $deposit_settings = MBS_Bookings::get_deposit_settings();
+        $deposit_amount   = MBS_Bookings::calculate_deposit( $total_amount );
+
+        if ( $amount_paid_val > 0 ) {
+            // They've paid something — this is a balance chase
+            $chase_type = 'balance';
+            $amount_due = $balance_due;
+        } elseif ( $deposit_settings['enabled'] && ! MBS_Bookings::requires_full_payment( $booking->booking_date ) ) {
+            // No payment yet, deposits enabled, event far away — chase the deposit
+            $chase_type = 'deposit';
             $amount_due = $deposit_amount;
+        } else {
+            // No payment, no deposits (or event imminent) — chase full amount
+            $chase_type = 'full';
+            $amount_due = $balance_due;
         }
 
         // Determine which template and colour based on chase count
-        if ( $chase_count === 0 ) {
-            $tpl_key = 'chase_gentle';
-            if ( $is_balance_chase ) $heading = 'Balance Payment Reminder';
-            elseif ( $is_deposit_chase ) $heading = 'Deposit Payment Reminder';
-            else $heading = 'Friendly Payment Reminder';
-            $colour  = '#f39c12';
-        } elseif ( $chase_count === 1 ) {
-            $tpl_key = 'chase_overdue';
-            if ( $is_balance_chase ) $heading = 'Balance Payment Overdue';
-            elseif ( $is_deposit_chase ) $heading = 'Deposit Payment Overdue';
-            else $heading = 'Payment Overdue';
-            $colour  = '#e67e22';
-        } else {
-            $tpl_key = 'chase_urgent';
-            if ( $is_balance_chase ) $heading = 'Urgent: Balance Payment Required';
-            elseif ( $is_deposit_chase ) $heading = 'Urgent: Deposit Payment Required';
-            else $heading = 'Urgent Payment Required';
-            $colour  = '#e74c3c';
-        }
+        $headings = array(
+            'balance' => array( 'Balance Payment Reminder', 'Balance Payment Overdue', 'Urgent: Balance Payment Required' ),
+            'deposit' => array( 'Deposit Payment Reminder', 'Deposit Payment Overdue', 'Urgent: Deposit Payment Required' ),
+            'full'    => array( 'Friendly Payment Reminder', 'Payment Overdue', 'Urgent Payment Required' ),
+        );
+        $colours = array( '#f39c12', '#e67e22', '#e74c3c' );
+        $tpl_keys = array( 'chase_gentle', 'chase_overdue', 'chase_urgent' );
+
+        $level   = min( $chase_count, 2 );
+        $tpl_key = $tpl_keys[ $level ];
+        $heading = $headings[ $chase_type ][ $level ];
+        $colour  = $colours[ $level ];
 
         $tpl       = MBS_Email_Templates::get_template( $tpl_key );
         $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
@@ -157,13 +160,13 @@ class MBS_Payment_Chaser {
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:' . $colour . ';">' . $heading . '</h2>';
 
-        // Add deposit-specific context before the template text
-        if ( $is_balance_chase ) {
+        // Add context box before the template text
+        if ( $chase_type === 'balance' ) {
             $body .= '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px;margin:0 0 16px;color:#92400e;">';
-            $body .= '<strong>Remaining balance due: &pound;' . number_format( $amount_due, 2 ) . '</strong><br>';
-            $body .= '<span style="font-size:13px;">Deposit of &pound;' . number_format( $deposit_paid_amt, 2 ) . ' received — thank you. The remaining balance is now due before your event.</span>';
+            $body .= '<strong>Balance due: &pound;' . number_format( $amount_due, 2 ) . '</strong><br>';
+            $body .= '<span style="font-size:13px;">Already paid: &pound;' . number_format( $amount_paid_val, 2 ) . ' | Total: &pound;' . number_format( $total_amount, 2 ) . '</span>';
             $body .= '</div>';
-        } elseif ( $is_deposit_chase ) {
+        } elseif ( $chase_type === 'deposit' ) {
             $balance_days = $deposit_settings['balance_days'];
             $body .= '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px;margin:0 0 16px;color:#92400e;">';
             $body .= '<strong>Deposit due: &pound;' . number_format( $amount_due, 2 ) . '</strong> (' . (int) $deposit_settings['percentage'] . '% of &pound;' . number_format( $total_amount, 2 ) . ')<br>';
@@ -177,12 +180,12 @@ class MBS_Payment_Chaser {
         if ( MBS_Woo_Payment::is_available() ) {
             $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
             if ( $pay_url ) {
-                if ( $is_balance_chase ) {
+                if ( $chase_type === 'balance' ) {
                     $btn_label = '💳 Pay Balance Now (&pound;' . number_format( $amount_due, 2 ) . ')';
-                } elseif ( $is_deposit_chase ) {
+                } elseif ( $chase_type === 'deposit' ) {
                     $btn_label = '💳 Pay Deposit Now (&pound;' . number_format( $amount_due, 2 ) . ')';
                 } else {
-                    $btn_label = '💳 Pay Now Online';
+                    $btn_label = '💳 Pay Now (&pound;' . number_format( $amount_due, 2 ) . ')';
                 }
                 $body .= '<p style="text-align:center;margin:24px 0;">';
                 $body .= '<a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;">' . $btn_label . '</a>';
@@ -215,7 +218,7 @@ class MBS_Payment_Chaser {
 
         // Audit log
         $type = $manual ? 'Manual payment chase' : 'Auto payment chase';
-        $what = $is_balance_chase ? ' (balance £' . number_format( $amount_due, 2 ) . ')' : ' (full £' . number_format( $total_amount, 2 ) . ')';
+        $what = ' (' . $chase_type . ' £' . number_format( $amount_due, 2 ) . ')';
         MBS_Audit_Log::log( $booking->ref, 'payment_chase', $type . ' (chase #' . ( $chase_count + 1 ) . ')' . $what );
     }
 }

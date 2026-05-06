@@ -810,24 +810,31 @@ class MBS_Admin {
 
         // Price change notice
         $diff = $new_amount - $old_amount;
-        if ( abs( $diff ) > 0.01 ) {
-            if ( $diff > 0 ) {
-                $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin:16px 0;">';
-                $body .= '<strong style="color:#991b1b;">Additional amount due: &pound;' . number_format( $diff, 2 ) . '</strong>';
-                $body .= '<p style="margin:4px 0 0;font-size:0.85rem;color:#991b1b;">Please arrange payment for the additional amount.</p>';
-                $body .= '</div>';
+        $amount_paid = (float) ( $booking->amount_paid ?? 0 );
+        $balance_due = $new_amount - $amount_paid;
 
-                // Add Pay Now button if WooCommerce available
-                if ( MBS_Woo_Payment::is_available() && $booking->status === 'confirmed' ) {
-                    $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
-                    if ( $pay_url ) {
-                        $body .= '<p style="text-align:center;margin:16px 0;"><a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">💳 Pay Now</a></p>';
-                    }
-                }
+        if ( $balance_due > 0.01 ) {
+            $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin:16px 0;">';
+            if ( $amount_paid > 0 ) {
+                $body .= '<strong style="color:#991b1b;">Balance due: &pound;' . number_format( $balance_due, 2 ) . '</strong>';
+                $body .= '<p style="margin:4px 0 0;font-size:0.85rem;color:#991b1b;">Already paid: &pound;' . number_format( $amount_paid, 2 ) . ' | New total: &pound;' . number_format( $new_amount, 2 ) . '</p>';
             } else {
-                $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px 16px;margin:16px 0;">';
-                $body .= '<strong style="color:#065f46;">Credit of &pound;' . number_format( abs( $diff ), 2 ) . '</strong>';
-                $body .= '<p style="margin:4px 0 0;font-size:0.85rem;color:#065f46;">We\'ll arrange a refund or credit this against your next booking.</p>';
+                $body .= '<strong style="color:#991b1b;">Amount due: &pound;' . number_format( $balance_due, 2 ) . '</strong>';
+            }
+            $body .= '</div>';
+
+            // Add Pay Now button if WooCommerce available
+            if ( MBS_Woo_Payment::is_available() && in_array( $booking->status, array( 'confirmed', 'deposit_paid' ) ) ) {
+                $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
+                if ( $pay_url ) {
+                    $body .= '<p style="text-align:center;margin:16px 0;"><a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;">💳 Pay Balance Now (&pound;' . number_format( $balance_due, 2 ) . ')</a></p>';
+                    $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details on your invoice.</p>';
+                }
+            }
+        } elseif ( $balance_due < -0.01 ) {
+            $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px 16px;margin:16px 0;">';
+            $body .= '<strong style="color:#065f46;">Refund due: &pound;' . number_format( abs( $balance_due ), 2 ) . '</strong>';
+            $body .= '<p style="margin:4px 0 0;font-size:0.85rem;color:#065f46;">You have overpaid. We\'ll arrange a refund or credit this against your next booking.</p>';
                 $body .= '</div>';
             }
         }
