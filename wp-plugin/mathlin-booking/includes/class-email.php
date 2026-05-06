@@ -157,9 +157,24 @@ class MBS_Email {
         $subject   = MBS_Email_Templates::replace_placeholders( $tpl['subject'], $booking );
         $body_text = MBS_Email_Templates::replace_placeholders( $tpl['body'], $booking );
 
+        $total          = (float) $booking->amount;
+        $deposit_paid   = (float) ( $booking->deposit_paid ?? 0 );
+
         $body  = self::header();
         $body .= '<h2 style="color:#46b450;">Payment Received – Thank You!</h2>';
         $body .= nl2br( esc_html( $body_text ) );
+
+        // Payment summary box (matching deposit received email style)
+        $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:16px;margin:16px 0;">';
+        $body .= '<strong>Total paid:</strong> &pound;' . number_format( $total, 2 ) . '<br>';
+        if ( $deposit_paid > 0 && $deposit_paid < $total ) {
+            $body .= '<strong>Deposit:</strong> &pound;' . number_format( $deposit_paid, 2 ) . '<br>';
+            $body .= '<strong>Balance:</strong> &pound;' . number_format( $total - $deposit_paid, 2 ) . '<br>';
+        }
+        $body .= '<strong>Remaining balance:</strong> &pound;0.00 ✓<br>';
+        $body .= '<em style="font-size:13px;color:#065f46;">Your booking is fully confirmed and paid. We look forward to seeing you!</em>';
+        $body .= '</div>';
+
         $body .= self::booking_table_obj( $booking );
         $body .= self::ical_button( $booking );
         $body .= self::footer();
