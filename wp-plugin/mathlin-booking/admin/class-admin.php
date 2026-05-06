@@ -243,6 +243,12 @@ class MBS_Admin {
         $table = $wpdb->prefix . MBS_TABLE;
         $wpdb->update( $table, array( 'deposit_paid' => $deposit_amount ), array( 'ref' => $ref ) );
 
+        // Send deposit received confirmation email to booker
+        $updated_booking = MBS_Bookings::get( $ref );
+        if ( $updated_booking ) {
+            MBS_Email::notify_deposit_received( $updated_booking, $deposit_amount );
+        }
+
         MBS_Audit_Log::log( $ref, 'deposit_paid', 'Admin marked deposit of £' . number_format( $deposit_amount, 2 ) . ' as received (bank transfer). Balance of £' . number_format( (float) $booking->amount - $deposit_amount, 2 ) . ' outstanding.' );
 
         wp_send_json_success( array( 'ref' => $ref, 'status' => 'deposit_paid', 'deposit' => $deposit_amount ) );
