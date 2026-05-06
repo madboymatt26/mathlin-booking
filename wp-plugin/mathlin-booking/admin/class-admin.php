@@ -835,8 +835,7 @@ class MBS_Admin {
             $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px 16px;margin:16px 0;">';
             $body .= '<strong style="color:#065f46;">Refund due: &pound;' . number_format( abs( $balance_due ), 2 ) . '</strong>';
             $body .= '<p style="margin:4px 0 0;font-size:0.85rem;color:#065f46;">You have overpaid. We\'ll arrange a refund or credit this against your next booking.</p>';
-                $body .= '</div>';
-            }
+            $body .= '</div>';
         }
 
         $body .= '<p>If you have any questions, contact us at <a href="mailto:' . esc_attr( $admin_email ) . '">' . esc_html( $admin_email ) . '</a>.</p>';
