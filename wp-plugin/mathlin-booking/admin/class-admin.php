@@ -858,11 +858,15 @@ class MBS_Admin {
         $body .= '<div style="text-align:center;padding:16px;color:#999;font-size:12px;">' . esc_html( $org['name'] ) . ' &bull; ' . esc_html( $org['address'] ) . '</div>';
         $body .= '</body></html>';
 
+        // Attach updated invoice
+        $attachments = MBS_Email::generate_invoice_attachment_for( $booking );
+
         $headers = array(
             'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $org['name'] . ' <' . $admin_email . '>',
+            'From: ' . $org['name'] . ' <' . get_option( 'admin_email', $admin_email ) . '>',
+            'Reply-To: ' . $admin_email,
         );
-        MBS_Email_Queue::send( $booking->email, $subject, $body, $headers );
+        MBS_Email_Queue::send( $booking->email, $subject, $body, $headers, $attachments );
     }
 
     public function ajax_approve_request() {
