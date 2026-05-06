@@ -22,6 +22,44 @@ $kitchen_price = MBS_Bookings::get_kitchen_price();
             </div>
 
             <!-- View mode -->
+            <?php
+            // Financial balance indicator — show if booking has been modified and payment status differs
+            $amount_paid = 0;
+            if ( MBS_Woo_Payment::is_available() ) {
+                // Look up completed WooCommerce orders for this booking
+                $woo_orders = wc_get_orders( array(
+                    'meta_key'   => '_mbs_booking_ref',
+                    'meta_value' => $booking->ref,
+                    'status'     => array( 'wc-completed', 'wc-processing' ),
+                    'limit'      => -1,
+                ) );
+                foreach ( $woo_orders as $woo_order ) {
+                    $amount_paid += (float) $woo_order->get_total();
+                    // Subtract any refunds
+                    $amount_paid -= (float) $woo_order->get_total_refunded();
+                }
+            }
+            // Also consider status-based payment: if status is 'paid' but no WooCommerce orders found,
+            // assume the full original amount was paid (e.g. bank transfer marked manually)
+            if ( $amount_paid <= 0 && $booking->status === 'paid' ) {
+                $amount_paid = (float) $booking->amount;
+            }
+
+            $balance = (float) $booking->amount - $amount_paid;
+            if ( $amount_paid > 0 && abs( $balance ) > 0.01 ) :
+                if ( $balance > 0 ) : ?>
+                    <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin:0 1.5rem 1rem;color:#991b1b;font-weight:bold;">
+                        ⚠️ Balance Due: &pound;<?php echo number_format( $balance, 2 ); ?>
+                        <span style="font-weight:normal;font-size:13px;margin-left:8px;">(Paid: &pound;<?php echo number_format( $amount_paid, 2 ); ?> / Total: &pound;<?php echo number_format( $booking->amount, 2 ); ?>)</span>
+                    </div>
+                <?php else : ?>
+                    <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px 16px;margin:0 1.5rem 1rem;color:#065f46;font-weight:bold;">
+                        💰 Refund / Credit Due: &pound;<?php echo number_format( abs( $balance ), 2 ); ?>
+                        <span style="font-weight:normal;font-size:13px;margin-left:8px;">(Paid: &pound;<?php echo number_format( $amount_paid, 2 ); ?> / Total: &pound;<?php echo number_format( $booking->amount, 2 ); ?>)</span>
+                    </div>
+                <?php endif;
+            endif;
+            ?>
             <div id="nms-view-mode" class="nms-detail-grid">
                 <div class="nms-detail-item"><label>Reference</label><span><?php echo esc_html( $booking->ref ); ?></span></div>
                 <div class="nms-detail-item"><label>Invoice No.</label><span><?php echo esc_html( $booking->invoice_number ); ?></span></div>

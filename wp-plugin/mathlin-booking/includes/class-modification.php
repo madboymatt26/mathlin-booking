@@ -172,11 +172,31 @@ class MBS_Modification {
                     $new_amount = MBS_Bookings::calculate_cost( $space, $start, $end, (bool) $kitchen, (bool) $all_day, $num_days, (bool) $booking->scout_use );
                     $update['amount'] = $new_amount;
 
+                    // Auto-confirm: determine correct status based on payment
+                    // If previously paid and new cost <= old cost, keep as paid
+                    // If new cost > what was paid, set to confirmed (payment outstanding)
+                    $old_amount = (float) $booking->amount;
+                    $was_paid   = ( $booking->status === 'paid' );
+
+                    if ( $was_paid && (float) $new_amount <= $old_amount ) {
+                        $update['status'] = 'paid';
+                    } else {
+                        $update['status'] = 'confirmed';
+                    }
+
                     $wpdb->update( $table, $update, array( 'ref' => $request->booking_ref ) );
+
+                    MBS_Audit_Log::log( $request->booking_ref, 'status_changed',
+                        sprintf( 'Modification approved: status set to %s (was %s, cost %s → %s)',
+                            $update['status'], $booking->status,
+                            '£' . number_format( $old_amount, 2 ),
+                            '£' . number_format( (float) $new_amount, 2 )
+                        )
+                    );
                 }
             }
 
-            // Notify booker
+            // Notify booker (with pay button if additional amount due)
             $updated_booking = MBS_Bookings::get( $request->booking_ref );
             self::notify_booker_approved( $updated_booking, $booking->amount );
             MBS_Audit_Log::log( $request->booking_ref, 'edited', 'Modification request approved and applied by admin' );
@@ -307,8 +327,19 @@ class MBS_Modification {
         if ( abs( $diff ) > 0.01 ) {
             if ( $diff > 0 ) {
                 $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px;margin:12px 0;color:#991b1b;"><strong>Additional amount due: &pound;' . number_format( $diff, 2 ) . '</strong></div>';
+
+                // Add Pay Now button if WooCommerce is available and there's a balance due
+                if ( MBS_Woo_Payment::is_available() ) {
+                    $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
+                    if ( $pay_url ) {
+                        $body .= '<p style="text-align:center;margin:24px 0;">';
+                        $body .= '<a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">💳 Pay Now Online</a>';
+                        $body .= '</p>';
+                        $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details on your invoice.</p>';
+                    }
+                }
             } else {
-                $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px;margin:12px 0;color:#065f46;"><strong>Credit of &pound;' . number_format( abs( $diff ), 2 ) . '</strong></div>';
+                $body .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;padding:12px;margin:12px 0;color:#065f46;"><strong>Credit of &pound;' . number_format( abs( $diff ), 2 ) . ' — we will arrange a refund.</strong></div>';
             }
         }
 
