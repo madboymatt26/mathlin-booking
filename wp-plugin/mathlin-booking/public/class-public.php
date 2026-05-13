@@ -232,6 +232,13 @@ class MBS_Public {
         if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
             wp_send_json_error( array( 'message' => 'Please select a valid date.' ) );
         }
+
+        // Safety: reject dates in the past (regardless of notice period)
+        $today = wp_date( 'Y-m-d' );
+        if ( $date < $today ) {
+            wp_send_json_error( array( 'message' => 'The selected date (' . esc_html( $date ) . ') is in the past. Please select a future date.' ) );
+        }
+
         if ( strtotime( $date ) < strtotime( $min_date ) ) {
             if ( $notice_days === 0 ) {
                 $msg = 'Please select today or a future date.';
