@@ -30,20 +30,24 @@ class MBS_Auto_Archive {
 
         global $wpdb;
         $table     = $wpdb->prefix . MBS_TABLE;
+        $today     = wp_date( 'Y-m-d' );
         $threshold = wp_date( 'Y-m-d', strtotime( "-{$days_after} days" ) );
 
-        // Archive confirmed, cancelled, and paid bookings where the booking date
-        // (or end date for multi-day) has passed the threshold
+        // Safety: only archive bookings where the event date is BOTH:
+        // 1. In the past (before today)
+        // 2. Older than the configured threshold
         $count = $wpdb->query( $wpdb->prepare(
             "UPDATE {$table}
              SET status = 'archived'
              WHERE COALESCE(booking_date_end, booking_date) < %s
-             AND status IN ('confirmed', 'cancelled', 'paid')",
+             AND COALESCE(booking_date_end, booking_date) < %s
+             AND status IN ('confirmed', 'deposit_paid', 'cancelled', 'paid')",
+            $today,
             $threshold
         ) );
 
         if ( $count > 0 ) {
-            error_log( "[Mathlin Booking] Auto-archived {$count} past booking(s)." );
+            error_log( "[Mathlin Booking] Auto-archived {$count} past booking(s) (threshold: {$threshold})." );
         }
     }
 }
