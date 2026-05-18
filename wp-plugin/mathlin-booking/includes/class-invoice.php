@@ -7,46 +7,31 @@ class MBS_Invoice {
      * Generate invoice HTML for display in the admin dashboard.
      */
     public static function generate_html( $booking ) {
-        $spaces      = MBS_Bookings::get_spaces();
-        $space_info  = $spaces[ $booking->space ] ?? array();
         $kitchen_price = MBS_Bookings::get_kitchen_price();
-        $is_all_day  = ! empty( $booking->all_day );
-
-        // Determine quantity and unit price from the actual booking data
-        if ( $is_all_day ) {
-            $rate_daily = (float) ( $space_info['rate_daily'] ?? $space_info['rate'] ?? 0 );
-            $date_from  = $booking->booking_date;
-            $date_to    = $booking->booking_date_end ?? $booking->booking_date;
-            $num_days   = max( 1, (int) round( ( strtotime( $date_to ) - strtotime( $date_from ) ) / 86400 ) + 1 );
-            $qty_label  = $num_days . ' day' . ( $num_days !== 1 ? 's' : '' );
-            $unit_price = $rate_daily;
-        } else {
-            $rate_hourly = (float) ( $space_info['rate_hourly'] ?? $space_info['rate'] ?? 0 );
-            $start       = strtotime( $booking->start_time );
-            $end         = strtotime( $booking->end_time );
-            if ( $end <= $start ) $end += 86400; // overnight
-            $hours       = $start && $end ? (int) ceil( max( 0, ( $end - $start ) / 3600 ) ) : 0;
-            $qty_label   = $hours . ' hour' . ( $hours !== 1 ? 's' : '' );
-            $unit_price  = $rate_hourly;
-        }
-
+        $is_all_day    = ! empty( $booking->all_day );
         $space_subtotal = (float) $booking->amount - ( $booking->kitchen ? $kitchen_price : 0 );
+
         $issue_date     = wp_date( 'j F Y', strtotime( $booking->created_at ) );
         $bank           = MBS_Bookings::get_bank_details();
         $deposit_settings = MBS_Bookings::get_deposit_settings();
 
-        // Calculate due date based on deposit settings
         if ( $deposit_settings['enabled'] && (float) $booking->amount > 0 ) {
             $due_date = 'Immediately (deposit)';
             if ( MBS_Bookings::requires_full_payment( $booking->booking_date ) ) {
                 $due_date = 'Immediately';
             }
         } else {
-            $due_date = date( 'j F Y', strtotime( $booking->created_at . ' +' . $bank['payment_days'] . ' days' ) );
+            $due_date = wp_date( 'j F Y', strtotime( $booking->created_at . ' +' . $bank['payment_days'] . ' days' ) );
         }
 
-        $booking_date   = wp_date( 'l j F Y', strtotime( $booking->booking_date ) );
-        $time_str       = $is_all_day ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
+        $booking_date = wp_date( 'l j F Y', strtotime( $booking->booking_date ) );
+        $time_str     = $is_all_day ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
+
+        // Multi-day label
+        $date_label = $booking_date;
+        if ( ! empty( $booking->booking_date_end ) && $booking->booking_date_end !== $booking->booking_date ) {
+            $date_label = wp_date( 'j M Y', strtotime( $booking->booking_date ) ) . ' – ' . wp_date( 'j M Y', strtotime( $booking->booking_date_end ) );
+        }
 
         $org            = MBS_Email_Templates::get_org_settings();
         $org_name       = $org['name'] ?? 'Needham Market Scout Group';
@@ -54,9 +39,7 @@ class MBS_Invoice {
         $org_phone      = $org['phone'] ?? '';
         $org_charity    = $org['charity_number'] ?? '';
         $admin_email    = MBS_Bookings::get_admin_email();
-
-        // Split address into lines for the FROM section
-        $address_parts = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
+        $address_parts  = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
 
         ob_start();
         ?>
@@ -73,7 +56,7 @@ class MBS_Invoice {
                     <div class="nms-inv-number"><?php echo esc_html( $booking->invoice_number ); ?></div>
                     <p>Issue Date: <?php echo esc_html( $issue_date ); ?></p>
                     <p>Due Date: <strong><?php echo esc_html( $due_date ); ?></strong></p>
-                    <p><span class="nms-status nms-status-<?php echo esc_attr( $booking->status ); ?>"><?php echo esc_html( ucfirst( $booking->status ) ); ?></span></p>
+                    <p><span class="nms-status nms-status-<?php echo esc_attr( $booking->status ); ?>"><?php echo esc_html( MBS_Bookings::status_label( $booking->status ) ); ?></span></p>
                 </div>
             </div>
 
@@ -94,21 +77,20 @@ class MBS_Invoice {
 
             <table class="nms-inv-table">
                 <thead>
-                    <tr><th>Description</th><th>Qty</th><th class="text-right">Unit Price</th><th class="text-right">Amount</th></tr>
+                    <tr><th>Description</th><th class="text-right">Amount</th></tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><?php echo esc_html( $booking->space ); ?> hire – <?php echo esc_html( $booking_date ); ?><br>
-                            <small><?php echo esc_html( $time_str ); ?> &bull; <?php echo esc_html( $booking->purpose ); ?></small></td>
-                        <td><?php echo esc_html( $qty_label ); ?></td>
-                        <td class="text-right">&pound;<?php echo number_format( $unit_price, 2 ); ?></td>
+                        <td>
+                            <strong><?php echo esc_html( $booking->space ); ?> hire</strong><br>
+                            <small><?php echo esc_html( $date_label ); ?> &bull; <?php echo esc_html( $time_str ); ?></small><br>
+                            <small>Purpose: <?php echo esc_html( $booking->purpose ); ?></small>
+                        </td>
                         <td class="text-right">&pound;<?php echo number_format( $space_subtotal, 2 ); ?></td>
                     </tr>
                     <?php if ( $booking->kitchen ) : ?>
                     <tr>
                         <td>Kitchen facilities add-on</td>
-                        <td>1 session</td>
-                        <td class="text-right">&pound;<?php echo number_format( $kitchen_price, 2 ); ?></td>
                         <td class="text-right">&pound;<?php echo number_format( $kitchen_price, 2 ); ?></td>
                     </tr>
                     <?php endif; ?>
@@ -118,23 +100,22 @@ class MBS_Invoice {
             <div class="nms-inv-totals">
                 <div class="nms-inv-total-row"><span>Subtotal</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
                 <div class="nms-inv-total-row"><span>VAT (0% – Charity exempt)</span><span>&pound;0.00</span></div>
-                <div class="nms-inv-total-row nms-inv-grand"><span>Total Due</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
+                <div class="nms-inv-total-row nms-inv-grand"><span>Total</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
                 <?php
                 $inv_amount_paid = (float) ( $booking->amount_paid ?? 0 );
                 if ( $inv_amount_paid > 0 ) :
                     $inv_balance_due = (float) $booking->amount - $inv_amount_paid;
                 ?>
-                <div class="nms-inv-total-row"><span>Amount Paid</span><span>&pound;<?php echo number_format( $inv_amount_paid, 2 ); ?></span></div>
+                <div class="nms-inv-total-row"><span>Amount Paid</span><span style="color:#065f46;">&pound;<?php echo number_format( $inv_amount_paid, 2 ); ?></span></div>
                 <div class="nms-inv-total-row nms-inv-grand"><span>Balance Due</span><span>&pound;<?php echo number_format( max( 0, $inv_balance_due ), 2 ); ?></span></div>
                 <?php endif; ?>
             </div>
 
             <?php
-            $deposit_settings = MBS_Bookings::get_deposit_settings();
-            $deposit_amount   = MBS_Bookings::calculate_deposit( (float) $booking->amount );
-            $balance_amount   = (float) $booking->amount - $deposit_amount;
-            $requires_full    = MBS_Bookings::requires_full_payment( $booking->booking_date );
-            $balance_days     = $deposit_settings['balance_days'];
+            $deposit_amount = MBS_Bookings::calculate_deposit( (float) $booking->amount );
+            $balance_amount = (float) $booking->amount - $deposit_amount;
+            $requires_full  = MBS_Bookings::requires_full_payment( $booking->booking_date );
+            $balance_days   = $deposit_settings['balance_days'];
             ?>
 
             <div class="nms-inv-notes">
@@ -142,7 +123,7 @@ class MBS_Invoice {
                 <?php if ( $deposit_settings['enabled'] && (float) $booking->amount > 0 && ! $requires_full ) : ?>
                 <p>
                     <strong>Deposit due immediately:</strong> &pound;<?php echo number_format( $deposit_amount, 2 ); ?> (<?php echo (int) $deposit_settings['percentage']; ?>% of total)<br>
-                    <strong>Final balance due:</strong> &pound;<?php echo number_format( $balance_amount, 2 ); ?> — payable at least <?php echo $balance_days; ?> days before your event (by <?php echo date( 'j F Y', strtotime( $booking->booking_date . " -{$balance_days} days" ) ); ?>)<br><br>
+                    <strong>Final balance due:</strong> &pound;<?php echo number_format( $balance_amount, 2 ); ?> — payable at least <?php echo $balance_days; ?> days before your event (by <?php echo wp_date( 'j F Y', strtotime( $booking->booking_date . " -{$balance_days} days" ) ); ?>)<br><br>
                     <em>If a booking is made less than <?php echo $balance_days; ?> days before the event, the full amount is due immediately.</em>
                 </p>
                 <?php elseif ( $deposit_settings['enabled'] && (float) $booking->amount > 0 ) : ?>
@@ -163,38 +144,16 @@ class MBS_Invoice {
 
     /**
      * Generate a standalone HTML invoice suitable for email attachment.
-     * This is a complete HTML document with inline styles.
      */
     public static function generate_email_invoice( $booking ) {
-        $spaces      = MBS_Bookings::get_spaces();
-        $space_info  = $spaces[ $booking->space ] ?? array();
         $kitchen_price = MBS_Bookings::get_kitchen_price();
-        $is_all_day  = ! empty( $booking->all_day );
-
-        // Determine quantity and unit price from the actual booking data
-        if ( $is_all_day ) {
-            $rate_daily = (float) ( $space_info['rate_daily'] ?? $space_info['rate'] ?? 0 );
-            $date_from  = $booking->booking_date;
-            $date_to    = $booking->booking_date_end ?? $booking->booking_date;
-            $num_days   = max( 1, (int) round( ( strtotime( $date_to ) - strtotime( $date_from ) ) / 86400 ) + 1 );
-            $qty_label  = $num_days . ' day' . ( $num_days !== 1 ? 's' : '' );
-            $unit_price = $rate_daily;
-        } else {
-            $rate_hourly = (float) ( $space_info['rate_hourly'] ?? $space_info['rate'] ?? 0 );
-            $start       = strtotime( $booking->start_time );
-            $end         = strtotime( $booking->end_time );
-            if ( $end <= $start ) $end += 86400; // overnight
-            $hours       = $start && $end ? (int) ceil( max( 0, ( $end - $start ) / 3600 ) ) : 0;
-            $qty_label   = $hours . ' hour' . ( $hours !== 1 ? 's' : '' );
-            $unit_price  = $rate_hourly;
-        }
-
+        $is_all_day    = ! empty( $booking->all_day );
         $space_subtotal = (float) $booking->amount - ( $booking->kitchen ? $kitchen_price : 0 );
+
         $issue_date     = wp_date( 'j F Y', strtotime( $booking->created_at ) );
         $bank           = MBS_Bookings::get_bank_details();
         $deposit_settings = MBS_Bookings::get_deposit_settings();
 
-        // Calculate due date based on deposit settings
         if ( $deposit_settings['enabled'] && (float) $booking->amount > 0 ) {
             $due_date = 'Immediately (deposit)';
             if ( MBS_Bookings::requires_full_payment( $booking->booking_date ) ) {
@@ -204,18 +163,21 @@ class MBS_Invoice {
             $due_date = wp_date( 'j F Y', strtotime( $booking->created_at . ' +' . $bank['payment_days'] . ' days' ) );
         }
 
-        $booking_date   = wp_date( 'l j F Y', strtotime( $booking->booking_date ) );
-        $time_str       = $is_all_day ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
-        $admin_email    = MBS_Bookings::get_admin_email();
+        $booking_date = wp_date( 'l j F Y', strtotime( $booking->booking_date ) );
+        $time_str     = $is_all_day ? 'Full day' : ( $booking->start_time . ' – ' . $booking->end_time );
 
+        $date_label = $booking_date;
+        if ( ! empty( $booking->booking_date_end ) && $booking->booking_date_end !== $booking->booking_date ) {
+            $date_label = wp_date( 'j M Y', strtotime( $booking->booking_date ) ) . ' – ' . wp_date( 'j M Y', strtotime( $booking->booking_date_end ) );
+        }
+
+        $admin_email    = MBS_Bookings::get_admin_email();
         $org            = MBS_Email_Templates::get_org_settings();
         $org_name       = $org['name'] ?? 'Needham Market Scout Group';
         $org_address    = $org['address'] ?? '';
         $org_phone      = $org['phone'] ?? '';
         $org_charity    = $org['charity_number'] ?? '';
-
-        // Split address into lines for the FROM section
-        $address_parts = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
+        $address_parts  = array_filter( array_map( 'trim', preg_split( '/[,\n]/', $org_address ) ) );
 
         ob_start();
         ?>
@@ -283,21 +245,20 @@ class MBS_Invoice {
 
     <table>
         <thead>
-            <tr><th>Description</th><th>Qty</th><th class="text-right">Unit Price</th><th class="text-right">Amount</th></tr>
+            <tr><th>Description</th><th class="text-right">Amount</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td><?php echo esc_html( $booking->space ); ?> hire – <?php echo esc_html( $booking_date ); ?><br>
-                    <small><?php echo esc_html( $time_str ); ?> &bull; <?php echo esc_html( $booking->purpose ); ?></small></td>
-                <td><?php echo esc_html( $qty_label ); ?></td>
-                <td class="text-right">&pound;<?php echo number_format( $unit_price, 2 ); ?></td>
+                <td>
+                    <strong><?php echo esc_html( $booking->space ); ?> hire</strong><br>
+                    <small><?php echo esc_html( $date_label ); ?> &bull; <?php echo esc_html( $time_str ); ?></small><br>
+                    <small>Purpose: <?php echo esc_html( $booking->purpose ); ?></small>
+                </td>
                 <td class="text-right">&pound;<?php echo number_format( $space_subtotal, 2 ); ?></td>
             </tr>
             <?php if ( $booking->kitchen ) : ?>
             <tr>
                 <td>Kitchen facilities add-on</td>
-                <td>1 session</td>
-                <td class="text-right">&pound;<?php echo number_format( $kitchen_price, 2 ); ?></td>
                 <td class="text-right">&pound;<?php echo number_format( $kitchen_price, 2 ); ?></td>
             </tr>
             <?php endif; ?>
@@ -307,15 +268,22 @@ class MBS_Invoice {
     <div class="totals">
         <div class="total-row"><span>Subtotal</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
         <div class="total-row"><span>VAT (0% – Charity exempt)</span><span>&pound;0.00</span></div>
-        <div class="total-row grand"><span>Total Due</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
+        <div class="total-row grand"><span>Total</span><span>&pound;<?php echo number_format( $booking->amount, 2 ); ?></span></div>
+        <?php
+        $inv_amount_paid = (float) ( $booking->amount_paid ?? 0 );
+        if ( $inv_amount_paid > 0 ) :
+            $inv_balance_due = (float) $booking->amount - $inv_amount_paid;
+        ?>
+        <div class="total-row"><span>Amount Paid</span><span style="color:#065f46;">&pound;<?php echo number_format( $inv_amount_paid, 2 ); ?></span></div>
+        <div class="total-row grand"><span>Balance Due</span><span>&pound;<?php echo number_format( max( 0, $inv_balance_due ), 2 ); ?></span></div>
+        <?php endif; ?>
     </div>
 
     <?php
-    $deposit_settings = MBS_Bookings::get_deposit_settings();
-    $deposit_amount   = MBS_Bookings::calculate_deposit( (float) $booking->amount );
-    $balance_amount   = (float) $booking->amount - $deposit_amount;
-    $requires_full    = MBS_Bookings::requires_full_payment( $booking->booking_date );
-    $balance_days     = $deposit_settings['balance_days'];
+    $deposit_amount = MBS_Bookings::calculate_deposit( (float) $booking->amount );
+    $balance_amount = (float) $booking->amount - $deposit_amount;
+    $requires_full  = MBS_Bookings::requires_full_payment( $booking->booking_date );
+    $balance_days   = $deposit_settings['balance_days'];
     ?>
 
     <div class="notes">
@@ -323,7 +291,7 @@ class MBS_Invoice {
         <?php if ( $deposit_settings['enabled'] && (float) $booking->amount > 0 && ! $requires_full ) : ?>
         <p>
             <strong>Deposit due immediately:</strong> &pound;<?php echo number_format( $deposit_amount, 2 ); ?> (<?php echo (int) $deposit_settings['percentage']; ?>% of total)<br>
-            <strong>Final balance due:</strong> &pound;<?php echo number_format( $balance_amount, 2 ); ?> — payable at least <?php echo $balance_days; ?> days before your event (by <?php echo date( 'j F Y', strtotime( $booking->booking_date . " -{$balance_days} days" ) ); ?>)<br><br>
+            <strong>Final balance due:</strong> &pound;<?php echo number_format( $balance_amount, 2 ); ?> — payable at least <?php echo $balance_days; ?> days before your event (by <?php echo wp_date( 'j F Y', strtotime( $booking->booking_date . " -{$balance_days} days" ) ); ?>)<br><br>
             <em>If a booking is made less than <?php echo $balance_days; ?> days before the event, the full amount is due immediately.</em>
         </p>
         <?php elseif ( $deposit_settings['enabled'] && (float) $booking->amount > 0 ) : ?>
