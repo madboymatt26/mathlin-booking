@@ -241,7 +241,7 @@ class MBS_Email_Templates {
     public static function get_logo_html() {
         $org = self::get_org_settings();
         if ( ! empty( $org['logo_url'] ) ) {
-            return '<img src="' . esc_url( $org['logo_url'] ) . '" alt="' . esc_attr( $org['name'] ) . '" style="max-height:50px;max-width:200px;margin-bottom:8px;">';
+            return '<img src="' . esc_url( $org['logo_url'] ) . '" alt="' . esc_attr( $org['name'] ) . '" width="180" height="auto" style="max-height:60px;max-width:180px;width:180px;height:auto;margin-bottom:8px;">';
         }
         return '<span style="font-size:2rem;">&#9884;</span>';
     }
