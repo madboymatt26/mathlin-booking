@@ -154,7 +154,7 @@ class MBS_Updater {
                 'package'     => $download_url,
                 'icons'       => array(),
                 'banners'     => array(),
-                'tested'      => '',
+                'tested'      => '7.0',
                 'requires'    => '5.0',
                 'requires_php'=> '7.4',
             );
