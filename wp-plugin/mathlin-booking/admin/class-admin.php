@@ -603,6 +603,7 @@ class MBS_Admin {
                     'label'      => $label,
                     'multiplier' => max( 0, $multiplier ),
                     'bypass_access_gate' => ! empty( $tier_data['bypass_access_gate'] ),
+                    'offline_invoicing'  => ! empty( $tier_data['offline_invoicing'] ),
                 );
             }
             if ( ! empty( $tiers ) ) {
@@ -625,6 +626,9 @@ class MBS_Admin {
         }
         if ( isset( $_POST['facilities_text'] ) ) {
             update_option( 'mbs_facilities_text', wp_kses_post( $_POST['facilities_text'] ) );
+        }
+        if ( isset( $_POST['offline_payment_instructions'] ) ) {
+            update_option( 'mbs_offline_payment_instructions', wp_kses_post( $_POST['offline_payment_instructions'] ) );
         }
 
         wp_send_json_success( array( 'saved' => true, 'min_notice_days' => $notice_days ) );

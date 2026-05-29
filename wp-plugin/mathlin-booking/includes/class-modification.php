@@ -334,24 +334,29 @@ class MBS_Modification {
             if ( $diff > 0 ) {
                 $body .= '<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:12px;margin:12px 0;color:#991b1b;"><strong>Additional amount due: &pound;' . number_format( $diff, 2 ) . '</strong></div>';
 
-                // BACS payment details
-                if ( ! empty( $bank['sort_code'] ) && ! empty( $bank['account_number'] ) ) {
-                    $body .= '<div style="background:#f5f0ff;border:1px solid #e0d0f0;border-radius:6px;padding:12px;margin:12px 0;">';
-                    $body .= '<strong>Payment details:</strong><br>';
-                    $body .= 'Sort Code: ' . esc_html( $bank['sort_code'] ) . '<br>';
-                    $body .= 'Account: ' . esc_html( $bank['account_number'] ) . '<br>';
-                    $body .= 'Reference: ' . esc_html( $booking->invoice_number );
-                    $body .= '</div>';
-                }
+                if ( MBS_Bookings::booking_is_offline( $booking ) ) {
+                    // B2B offline tier — show configurable BACS/PO instructions, no card button
+                    $body .= MBS_Email::offline_payment_block( $booking, $diff );
+                } else {
+                    // BACS payment details
+                    if ( ! empty( $bank['sort_code'] ) && ! empty( $bank['account_number'] ) ) {
+                        $body .= '<div style="background:#f5f0ff;border:1px solid #e0d0f0;border-radius:6px;padding:12px;margin:12px 0;">';
+                        $body .= '<strong>Payment details:</strong><br>';
+                        $body .= 'Sort Code: ' . esc_html( $bank['sort_code'] ) . '<br>';
+                        $body .= 'Account: ' . esc_html( $bank['account_number'] ) . '<br>';
+                        $body .= 'Reference: ' . esc_html( $booking->invoice_number );
+                        $body .= '</div>';
+                    }
 
-                // Add Pay Now button if WooCommerce is available
-                if ( MBS_Woo_Payment::is_available() ) {
-                    $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
-                    if ( $pay_url ) {
-                        $body .= '<p style="text-align:center;margin:24px 0;">';
-                        $body .= '<a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">💳 Pay Now Online</a>';
-                        $body .= '</p>';
-                        $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details above.</p>';
+                    // Add Pay Now button if WooCommerce is available
+                    if ( MBS_Woo_Payment::is_available() ) {
+                        $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
+                        if ( $pay_url ) {
+                            $body .= '<p style="text-align:center;margin:24px 0;">';
+                            $body .= '<a href="' . esc_url( $pay_url ) . '" style="background:#2ecc71;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">💳 Pay Now Online</a>';
+                            $body .= '</p>';
+                            $body .= '<p style="text-align:center;font-size:13px;color:#666;">Or pay by bank transfer using the details above.</p>';
+                        }
                     }
                 }
             } else {

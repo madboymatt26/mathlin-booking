@@ -290,6 +290,28 @@ rest:
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="offline_payment_instructions">BACS / Offline Payment Instructions</label></th>
+                    <td>
+                        <?php
+                        wp_editor(
+                            get_option( 'mbs_offline_payment_instructions', '' ),
+                            'offline_payment_instructions',
+                            array(
+                                'textarea_name' => 'offline_payment_instructions',
+                                'textarea_rows' => 8,
+                                'media_buttons' => false,
+                                'teeny'         => true,
+                            )
+                        );
+                        ?>
+                        <p class="description" style="margin-top:8px;">
+                            Bank transfer (BACS) and Purchase Order instructions for B2B hirers (councils, businesses). Shown in emails instead of the "Pay Now" card button for tiers with <strong>Offline Invoicing</strong> enabled.<br>
+                            Supports placeholders: <code>{invoice}</code> (invoice number), <code>{ref}</code> (booking reference), <code>{amount}</code> (balance due).<br>
+                            Example: <em>Please pay by BACS to Sort Code 00-00-00, Account 12345678, quoting reference {invoice}. Purchase orders can be emailed to accounts@example.com.</em>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="terms_text">Terms &amp; Conditions</label></th>
                     <td>
                         <?php
@@ -544,6 +566,7 @@ rest:
                         <th>Label</th>
                         <th>Rate Multiplier</th>
                         <th>Bypass Payment Gate for Access Codes</th>
+                        <th>Offline Invoicing (BACS/PO)</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -554,6 +577,7 @@ rest:
                         <td><input type="text" class="nms-tier-label" value="<?php echo esc_attr( $tier['label'] ); ?>" style="width:180px;"></td>
                         <td><input type="number" class="nms-tier-multiplier" value="<?php echo esc_attr( $tier['multiplier'] ); ?>" min="0" step="0.05" style="width:80px;"> ×</td>
                         <td style="text-align:center;"><input type="checkbox" class="nms-tier-bypass" <?php checked( ! empty( $tier['bypass_access_gate'] ) ); ?>></td>
+                        <td style="text-align:center;"><input type="checkbox" class="nms-tier-offline" <?php checked( ! empty( $tier['offline_invoicing'] ) ); ?>></td>
                         <td><?php if ( $key !== 'standard' ) : ?><button type="button" class="button nms-remove-tier">&times;</button><?php endif; ?></td>
                     </tr>
                     <?php endforeach; ?>
@@ -562,7 +586,7 @@ rest:
             <p style="margin-top:12px;">
                 <button type="button" class="button" id="nms-add-tier">+ Add Tier</button>
             </p>
-            <p class="description">Standard (1.0×) is the base rate. Community (0.75×) = 25% discount. Commercial (1.5×) = 50% surcharge.<br>You can also set tier-specific rates per space by adding <code>rate_hourly_[tier_key]</code> and <code>rate_daily_[tier_key]</code> fields to the space config.<br><strong>Bypass Payment Gate:</strong> trusted tiers (e.g. Council, Commercial PO customers) receive their access code 24h before the event once <em>confirmed</em>, without needing to have paid in full. Leave unticked for public hirers (strict full-payment required).</p>
+            <p class="description">Standard (1.0×) is the base rate. Community (0.75×) = 25% discount. Commercial (1.5×) = 50% surcharge.<br>You can also set tier-specific rates per space by adding <code>rate_hourly_[tier_key]</code> and <code>rate_daily_[tier_key]</code> fields to the space config.<br><strong>Bypass Payment Gate:</strong> trusted tiers (e.g. Council, Commercial PO customers) receive their access code 24h before the event once <em>confirmed</em>, without needing to have paid in full. Leave unticked for public hirers (strict full-payment required).<br><strong>Offline Invoicing (BACS/PO):</strong> tick for councils/businesses who pay by bank transfer or purchase order. Suppresses all "Pay Now" card buttons, shows your BACS / PO instructions instead, and replaces aggressive payment chasers with a gentle statement reminder.</p>
         </div>
 
         <!-- Single Save Button -->

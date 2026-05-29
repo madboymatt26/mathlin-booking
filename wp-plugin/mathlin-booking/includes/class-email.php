@@ -110,8 +110,12 @@ class MBS_Email {
             $body .= '</div>';
         }
 
-        // Add Pay Now button if WooCommerce is available
-        if ( MBS_Woo_Payment::is_available() ) {
+        // Add Pay Now button if WooCommerce is available (suppressed for offline tiers)
+        $is_offline = MBS_Bookings::booking_is_offline( $booking );
+        if ( $is_offline && $total_amount > 0 ) {
+            // B2B: show BACS / PO instructions instead of a card payment button
+            $body .= self::offline_payment_block( $booking, $total_amount - $amount_paid_val );
+        } elseif ( MBS_Woo_Payment::is_available() ) {
             $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
             if ( $pay_url ) {
                 // Label the button appropriately
@@ -218,8 +222,10 @@ class MBS_Email {
 
         $body .= self::booking_table_obj( $booking );
 
-        // Pay balance button
-        if ( MBS_Woo_Payment::is_available() ) {
+        // Pay balance button (suppressed for offline tiers — show BACS instead)
+        if ( MBS_Bookings::booking_is_offline( $booking ) ) {
+            $body .= self::offline_payment_block( $booking, $balance );
+        } elseif ( MBS_Woo_Payment::is_available() ) {
             $pay_url = MBS_Woo_Payment::generate_payment_url( $booking );
             if ( $pay_url ) {
                 $body .= '<p style="margin-top:16px;text-align:center;">';
@@ -410,6 +416,39 @@ class MBS_Email {
             ' . esc_html( $org['name'] ) . ' &bull; ' . esc_html( $org['address'] ) . ' &bull; ' . esc_html( $org['phone'] ) . '<br>
             Registered Charity No. ' . esc_html( $org['charity_number'] ) . '
         </div></body></html>';
+    }
+
+    /**
+     * Build an HTML block of BACS / offline payment instructions for B2B bookings.
+     * Returns an empty string if no instructions are configured.
+     *
+     * @param object $booking   Booking (used for the {invoice} / {ref} placeholders)
+     * @param float  $amount_due Outstanding balance to display
+     */
+    public static function offline_payment_block( $booking, $amount_due = null ) {
+        $instructions = get_option( 'mbs_offline_payment_instructions', '' );
+
+        if ( $amount_due === null ) {
+            $amount_due = (float) $booking->amount - (float) ( $booking->amount_paid ?? 0 );
+        }
+
+        $body  = '<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:16px;margin:16px 0;">';
+        $body .= '<strong style="color:#3730a3;">💼 Payment by Invoice (BACS / Purchase Order)</strong><br>';
+        if ( $amount_due > 0.01 ) {
+            $body .= '<p style="margin:8px 0 0;">Amount due: <strong>&pound;' . number_format( $amount_due, 2 ) . '</strong> &bull; Reference: <strong>' . esc_html( $booking->invoice_number ?: $booking->ref ) . '</strong></p>';
+        }
+        if ( ! empty( $instructions ) ) {
+            // Allow {invoice}, {ref}, {amount} placeholders in the instructions
+            $instructions = str_replace(
+                array( '{invoice}', '{ref}', '{amount}' ),
+                array( $booking->invoice_number ?: $booking->ref, $booking->ref, number_format( $amount_due, 2 ) ),
+                $instructions
+            );
+            $body .= '<div style="margin-top:8px;font-size:14px;color:#3730a3;">' . wp_kses_post( wpautop( $instructions ) ) . '</div>';
+        }
+        $body .= '</div>';
+
+        return $body;
     }
 
     /**

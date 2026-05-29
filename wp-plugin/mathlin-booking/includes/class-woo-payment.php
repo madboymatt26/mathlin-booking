@@ -101,6 +101,11 @@ class MBS_Woo_Payment {
         $balance = (float) $booking->amount - (float) ( $booking->amount_paid ?? 0 );
         if ( $balance <= 0.01 ) return '';
 
+        // B2B: Offline-invoicing tiers (BACS/PO) never get WooCommerce Pay Now links.
+        // Returning empty here suppresses the button across ALL emails, since every
+        // template guards on `if ( $pay_url )`.
+        if ( MBS_Bookings::booking_is_offline( $booking ) ) return '';
+
         $product_id = self::get_payment_product_id();
         if ( ! $product_id ) return '';
 

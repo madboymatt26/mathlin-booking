@@ -157,6 +157,24 @@ class MBS_Bookings {
         return ! empty( $tiers[ $tier ]['bypass_access_gate'] );
     }
 
+    /**
+     * Whether a tier is configured for offline invoicing (BACS / Purchase Order).
+     * Offline tiers do not receive WooCommerce "Pay Now" links and are exempt
+     * from aggressive payment-chasing.
+     */
+    public static function tier_is_offline( $tier = 'standard' ) {
+        $tiers = self::get_pricing_tiers();
+        return ! empty( $tiers[ $tier ]['offline_invoicing'] );
+    }
+
+    /**
+     * Whether a specific booking should be treated as offline-invoiced,
+     * based on its resolved pricing tier.
+     */
+    public static function booking_is_offline( $booking ) {
+        return self::tier_is_offline( self::get_booking_tier( $booking ) );
+    }
+
     // ── Space Bundling ─────────────────────────────────────────────────────────
 
     /**

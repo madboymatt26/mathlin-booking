@@ -115,6 +115,13 @@ class MBS_Payment_Chaser {
         // If nothing is owed, don't chase
         if ( $balance_due <= 0.01 ) return;
 
+        // B2B EXEMPTION: offline-invoicing tiers get a gentle statement reminder
+        // instead of the escalating "pay now or cancel" chase sequence.
+        if ( MBS_Bookings::booking_is_offline( $booking ) ) {
+            self::send_b2b_statement_reminder( $booking, $balance_due, $manual );
+            return;
+        }
+
         // Determine chase type based on what's already been paid
         $deposit_settings = MBS_Bookings::get_deposit_settings();
         $deposit_amount   = MBS_Bookings::calculate_deposit( $total_amount );
@@ -220,5 +227,82 @@ class MBS_Payment_Chaser {
         $type = $manual ? 'Manual payment chase' : 'Auto payment chase';
         $what = ' (' . $chase_type . ' £' . number_format( $amount_due, 2 ) . ')';
         MBS_Audit_Log::log( $booking->ref, 'payment_chase', $type . ' (chase #' . ( $chase_count + 1 ) . ')' . $what );
+    }
+
+    /**
+     * Send a gentle "statement reminder" for B2B offline-invoicing bookings.
+     *
+     * Councils / commercial hirers pay via BACS or Purchase Order on their own
+     * finance cycle, so they should never receive the escalating "pay now or
+     * we'll cancel" sequence. Instead we send a single calm reminder that an
+     * invoice is outstanding, addressed at their accounts payable department,
+     * with the configured BACS / PO instructions.
+     *
+     * @param object $booking     Booking database row
+     * @param float  $balance_due Outstanding balance
+     * @param bool   $manual      Whether triggered manually by an admin
+     */
+    public static function send_b2b_statement_reminder( $booking, $balance_due, $manual = false ) {
+        $chase_count = (int) ( $booking->chase_count ?? 0 );
+        $org         = MBS_Email_Templates::get_org_settings();
+        $admin_email = MBS_Bookings::get_admin_email();
+
+        $total_amount = (float) $booking->amount;
+        $reference    = $booking->invoice_number ?: $booking->ref;
+
+        $subject = 'Statement Reminder: Outstanding Invoice ' . $reference . ' — ' . $org['name'];
+
+        $colour = '#4f46e5'; // calm indigo, not an alarm colour
+        $body  = '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#1a1a2e;max-width:600px;margin:0 auto;">';
+        $body .= '<div style="background:' . $colour . ';padding:24px 32px;border-radius:8px 8px 0 0;text-align:center;">';
+        $body .= MBS_Email_Templates::get_logo_html();
+        $body .= '<h1 style="color:#fff;margin:8px 0 0;font-size:20px;">' . esc_html( $org['name'] ) . '</h1>';
+        $body .= '<p style="color:rgba(255,255,255,0.9);margin:4px 0 0;">Account Statement Reminder</p>';
+        $body .= '</div>';
+        $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
+        $body .= '<h2 style="color:' . $colour . ';">Invoice ' . esc_html( $reference ) . ' is outstanding</h2>';
+        $body .= '<p>Dear ' . esc_html( $booking->name ) . ',</p>';
+        $body .= '<p>This is a courtesy reminder for your finance / accounts payable department that the following invoice remains outstanding on your account. No action is required if payment is already in progress through your normal purchase order or BACS cycle.</p>';
+
+        $body .= '<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">';
+        $body .= '<tr><td style="padding:6px 0;color:#555;">Invoice / Reference</td><td style="padding:6px 0;text-align:right;"><strong>' . esc_html( $reference ) . '</strong></td></tr>';
+        $body .= '<tr><td style="padding:6px 0;color:#555;">Booking date</td><td style="padding:6px 0;text-align:right;">' . esc_html( wp_date( 'j M Y', strtotime( $booking->booking_date ) ) ) . '</td></tr>';
+        $body .= '<tr><td style="padding:6px 0;color:#555;">Invoice total</td><td style="padding:6px 0;text-align:right;">&pound;' . number_format( $total_amount, 2 ) . '</td></tr>';
+        if ( (float) ( $booking->amount_paid ?? 0 ) > 0 ) {
+            $body .= '<tr><td style="padding:6px 0;color:#555;">Received to date</td><td style="padding:6px 0;text-align:right;">&pound;' . number_format( (float) $booking->amount_paid, 2 ) . '</td></tr>';
+        }
+        $body .= '<tr style="border-top:1px solid #e0d0f0;"><td style="padding:8px 0;color:#1a1a2e;"><strong>Balance outstanding</strong></td><td style="padding:8px 0;text-align:right;"><strong>&pound;' . number_format( $balance_due, 2 ) . '</strong></td></tr>';
+        $body .= '</table>';
+
+        // BACS / Purchase Order instructions
+        $body .= MBS_Email::offline_payment_block( $booking, $balance_due );
+
+        $body .= '<p style="font-size:13px;color:#777;margin-top:16px;">If this invoice has already been settled, please accept our thanks and disregard this reminder. For any queries, just reply to this email.</p>';
+        $body .= '</div>';
+        $body .= '<div style="text-align:center;padding:16px;color:#999;font-size:12px;">' . esc_html( $org['name'] ) . ' &bull; ' . esc_html( $org['address'] ) . ' &bull; Charity No. ' . esc_html( $org['charity_number'] ) . '</div>';
+        $body .= '</body></html>';
+
+        $headers = array(
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $org['name'] . ' <' . get_option( 'admin_email', $admin_email ) . '>',
+            'Reply-To: ' . $admin_email,
+        );
+        wp_mail( $booking->email, $subject, $body, $headers );
+
+        // Update chase tracking (so we respect the chase interval / max cap)
+        global $wpdb;
+        $table = $wpdb->prefix . MBS_TABLE;
+        $wpdb->update(
+            $table,
+            array(
+                'chase_count' => $chase_count + 1,
+                'last_chased' => current_time( 'mysql' ),
+            ),
+            array( 'ref' => $booking->ref )
+        );
+
+        // Audit log
+        $type = $manual ? 'Manual B2B statement reminder' : 'Auto B2B statement reminder';
+        MBS_Audit_Log::log( $booking->ref, 'payment_chase', $type . ' (reminder #' . ( $chase_count + 1 ) . ', balance £' . number_format( $balance_due, 2 ) . ')' );
     }
 }
