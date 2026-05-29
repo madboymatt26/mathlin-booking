@@ -87,6 +87,7 @@ class MBS_Admin {
             $requests_label .= ' <span class="awaiting-mod count-' . $pending_count . '"><span class="pending-count">' . $pending_count . '</span></span>';
         }
         add_submenu_page( 'mathlin-booking', 'Change Requests', $requests_label, $booking_cap, 'mathlin-requests', array( $this, 'render_requests' ) );
+        add_submenu_page( 'mathlin-booking', 'Audit Log', 'Audit Log', $booking_cap, 'mathlin-audit-log', array( $this, 'render_audit_log' ) );
     }
 
     // ── Assets ─────────────────────────────────────────────────────────────────
@@ -730,6 +731,15 @@ class MBS_Admin {
         include MBS_PLUGIN_DIR . 'admin/views/requests.php';
     }
 
+    public function render_audit_log() {
+        $limit   = isset( $_GET['limit'] ) ? max( 20, min( 1000, absint( $_GET['limit'] ) ) ) : 200;
+        $search  = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+        $entries = $search !== ''
+            ? MBS_Audit_Log::search( $search, $limit )
+            : MBS_Audit_Log::get_recent( $limit );
+        include MBS_PLUGIN_DIR . 'admin/views/audit-log.php';
+    }
+
     public function ajax_add_blocked() {
         check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
         if ( ! self::can_manage_bookings() ) wp_send_json_error( 'You do not have permission to perform this action.', 403 );
@@ -915,8 +925,9 @@ class MBS_Admin {
     }
 
     /**
-     * Permanently delete an entire Scout Nights series (past and future).
+     * Permanently delete bookings in a Scout Nights series.
      * Administrator only, since it destroys the historical record.
+     * Scope: 'all' (past + future) or 'future' (today onwards).
      */
     public function ajax_delete_scout_series() {
         check_ajax_referer( 'mbs_admin_nonce', 'nonce' );
@@ -925,15 +936,19 @@ class MBS_Admin {
         $series_id = sanitize_text_field( $_POST['series_id'] ?? '' );
         if ( ! $series_id ) wp_send_json_error( 'No series ID provided.' );
 
-        $deleted = MBS_Bookings::delete_series( $series_id );
+        $scope = ( ( $_POST['scope'] ?? 'all' ) === 'future' ) ? 'future' : 'all';
+
+        $deleted = MBS_Bookings::delete_series( $series_id, $scope );
         if ( $deleted === false ) {
             wp_send_json_error( 'Database error deleting the series.' );
         }
 
+        $where = ( $scope === 'future' ) ? 'future ' : '';
         wp_send_json_success( array(
             'series_id' => $series_id,
+            'scope'     => $scope,
             'deleted'   => $deleted,
-            'message'   => $deleted . ' booking(s) permanently deleted from series ' . $series_id . '.',
+            'message'   => $deleted . ' ' . $where . 'booking(s) permanently deleted from series ' . $series_id . '.',
         ) );
     }
 

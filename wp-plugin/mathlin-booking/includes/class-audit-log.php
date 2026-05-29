@@ -72,6 +72,21 @@ class MBS_Audit_Log {
     }
 
     /**
+     * Search audit log entries by reference, action, details or user name.
+     */
+    public static function search( $term, $limit = 200 ) {
+        global $wpdb;
+        $table = self::table();
+        $like  = '%' . $wpdb->esc_like( $term ) . '%';
+        return $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE ref LIKE %s OR action LIKE %s OR details LIKE %s OR user_name LIKE %s
+             ORDER BY created_at DESC LIMIT %d",
+            $like, $like, $like, $like, $limit
+        ) );
+    }
+
+    /**
      * Get a human-readable label for an action type.
      */
     public static function action_label( $action ) {
@@ -89,8 +104,16 @@ class MBS_Audit_Log {
             'cancellation_requested' => '❌ Cancellation Requested',
             'series_confirmed'  => '✅ Series Confirmed',
             'series_cancelled'  => '❌ Series Cancelled',
+            'series_bulk_cancel' => '❌ Series Bulk-Cancelled (future)',
+            'series_bulk_edit'  => '✏️ Series Bulk-Edited (future)',
+            'series_extended'   => '📅 Series Extended',
+            'series_reopen'     => '↩️ Series Reopened (future)',
+            'series_deleted'    => '🗑️ Series Deleted',
             'reminder_sent'     => '📧 Reminder Sent',
             'status_changed'    => '🔄 Status Changed',
+            'payment_chase'     => '📧 Payment Reminder',
+            'access_sent'       => '🔑 Access Details Sent',
+            'access_resent'     => '🔑 Access Details Resent',
         );
         return $labels[ $action ] ?? ucfirst( str_replace( '_', ' ', $action ) );
     }

@@ -1105,21 +1105,27 @@ class MBS_Bookings {
     }
 
     /**
-     * Permanently delete an ENTIRE series — every booking, past and future.
+     * Permanently delete bookings in a series.
      *
-     * This is a hard delete intended for admin clean-up (e.g. a series created
-     * in error). It removes the historical record too, so callers should gate
-     * it behind an administrator capability and a clear confirmation.
+     * Hard delete intended for admin clean-up. Scope controls how much goes:
+     *   - 'all'    : every booking in the series, past and future (default)
+     *   - 'future' : only booking_date >= today, preserving the past record
+     *
+     * Callers should gate this behind an administrator capability and a clear
+     * confirmation.
      *
      * @param string $series_id The SER-XXXXXX series reference.
+     * @param string $scope     'all' or 'future'.
      * @return int|false Number of rows deleted, or false on failure.
      */
-    public static function delete_series( $series_id ) {
+    public static function delete_series( $series_id, $scope = 'all' ) {
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
+        $today = wp_date( 'Y-m-d' );
+        $future_only = ( $scope === 'future' );
 
-        // Notify HA to clear any active (confirmed) future bookings first.
-        $today  = wp_date( 'Y-m-d' );
+        // Notify HA to clear any active (confirmed) future bookings first —
+        // these have live calendar entries / automations regardless of scope.
         $active = $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table}
              WHERE series_id = %s AND booking_date >= %s AND status IN ('confirmed','deposit_paid','paid')",
@@ -1130,17 +1136,26 @@ class MBS_Bookings {
             MBS_HomeAssistant::notify_cancelled( $booking );
         }
 
-        $result = $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$table} WHERE series_id = %s",
-            $series_id
-        ) );
+        if ( $future_only ) {
+            $result = $wpdb->query( $wpdb->prepare(
+                "DELETE FROM {$table} WHERE series_id = %s AND booking_date >= %s",
+                $series_id,
+                $today
+            ) );
+        } else {
+            $result = $wpdb->query( $wpdb->prepare(
+                "DELETE FROM {$table} WHERE series_id = %s",
+                $series_id
+            ) );
+        }
 
         if ( $result === false ) return false;
 
         MBS_Audit_Log::log(
             $series_id,
             'series_deleted',
-            'Permanently deleted entire series (' . (int) $result . ' booking(s), past and future)'
+            'Permanently deleted ' . (int) $result . ' booking(s) from series'
+            . ( $future_only ? ' (future only, from ' . $today . ')' : ' (entire series, past and future)' )
         );
 
         return (int) $result;

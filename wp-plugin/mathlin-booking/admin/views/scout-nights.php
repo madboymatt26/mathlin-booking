@@ -273,14 +273,38 @@ jQuery(function($) {
     $(document).on('click', '.nms-btn-delete-series', function() {
         var $btn     = $(this);
         var seriesId = $btn.data('series');
-        if (!confirm('⚠️ PERMANENTLY DELETE the entire series ' + seriesId + '?\n\nThis removes ALL bookings in the series — past and future — and cannot be undone.')) return;
-        if (!confirm('Are you absolutely sure? This is your last chance to cancel.')) return;
+
+        // Ask for scope: future-only or everything.
+        var choice = prompt(
+            'PERMANENTLY DELETE bookings in series ' + seriesId + '.\n\n' +
+            'Type "FUTURE" to delete only upcoming bookings (keeps past records),\n' +
+            'or type "ALL" to delete the entire series including past bookings.\n\n' +
+            'This cannot be undone.'
+        );
+        if (choice === null) return; // cancelled the prompt
+        choice = choice.trim().toUpperCase();
+
+        var scope;
+        if (choice === 'FUTURE') {
+            scope = 'future';
+        } else if (choice === 'ALL') {
+            scope = 'all';
+        } else {
+            alert('No changes made. Please type exactly "FUTURE" or "ALL".');
+            return;
+        }
+
+        var confirmMsg = (scope === 'all')
+            ? '⚠️ Delete the ENTIRE series ' + seriesId + ' (past AND future)? This cannot be undone.'
+            : 'Delete all FUTURE bookings in series ' + seriesId + '? Past bookings are kept. This cannot be undone.';
+        if (!confirm(confirmMsg)) return;
 
         $btn.prop('disabled', true).text('Deleting…');
         $.post(MBS_Admin.ajax_url, {
             action:    'mbs_delete_scout_series',
             nonce:     MBS_Admin.nonce,
-            series_id: seriesId
+            series_id: seriesId,
+            scope:     scope
         }, function(res) {
             if (res.success) {
                 alert(res.data.message);
