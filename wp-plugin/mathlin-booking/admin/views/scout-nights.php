@@ -149,6 +149,19 @@ $bookings = array_filter( $bookings, function( $b ) { return ! empty( $b->scout_
             <button class="button button-primary" id="nms-edit-series-save">Save Changes to Series</button>
         </div>
         <span id="nms-edit-series-msg" style="display:block;margin-top:12px;"></span>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;">
+
+        <h3 style="margin:0 0 4px;">📅 Extend Series</h3>
+        <p style="color:#6b7280;font-size:13px;margin-top:0;">Add more weekly bookings, continuing on the same day and time. Up to 52 weeks can be added at a time — run again for more. Conflicting or blocked dates are skipped.</p>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;">
+                <label class="nms-edit-label">Extend until</label>
+                <input type="date" id="nms-edit-series-extend-until" style="width:100%;">
+            </div>
+            <button class="button button-secondary" id="nms-edit-series-extend">Extend</button>
+        </div>
+        <span id="nms-extend-series-msg" style="display:block;margin-top:12px;"></span>
     </div>
 </div>
 
@@ -219,6 +232,8 @@ jQuery(function($) {
         $('#nms-edit-series-end').val($btn.data('end'));
         $('#nms-edit-series-purpose').val($btn.data('purpose'));
         $('#nms-edit-series-msg').text('');
+        $('#nms-extend-series-msg').text('');
+        $('#nms-edit-series-extend-until').val('');
         $('#nms-edit-series-modal').css('display', 'block');
     });
 
@@ -258,6 +273,38 @@ jQuery(function($) {
             }
         }).fail(function() {
             $btn.prop('disabled', false).text('Save Changes to Series');
+            $msg.css('color', '#dc3232').text('✗ Network error');
+        });
+    });
+
+    $('#nms-edit-series-extend').on('click', function() {
+        var $btn = $(this);
+        var $msg = $('#nms-extend-series-msg');
+        var seriesId = $('#nms-edit-series-series').val();
+        var until = $('#nms-edit-series-extend-until').val();
+
+        if (!until) {
+            $msg.css('color', '#dc3232').text('✗ Please choose a date to extend until.');
+            return;
+        }
+        if (!confirm('Add weekly bookings to series ' + seriesId + ' up to ' + until + '?')) return;
+
+        $btn.prop('disabled', true).text('Extending…');
+        $.post(MBS_Admin.ajax_url, {
+            action:       'mbs_extend_scout_series',
+            nonce:        MBS_Admin.nonce,
+            series_id:    seriesId,
+            extend_until: until
+        }, function(res) {
+            $btn.prop('disabled', false).text('Extend');
+            if (res.success) {
+                alert(res.data.message);
+                window.location.reload();
+            } else {
+                $msg.css('color', '#dc3232').text('✗ ' + (res.data || 'Error extending series'));
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Extend');
             $msg.css('color', '#dc3232').text('✗ Network error');
         });
     });

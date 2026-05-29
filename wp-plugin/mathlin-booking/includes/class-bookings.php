@@ -927,6 +927,138 @@ class MBS_Bookings {
     }
 
     /**
+     * Extend an existing series with further weekly occurrences up to a new
+     * end date. New bookings reuse the *latest* booking in the series as their
+     * template (so any time/space/section edits made via update_series_future()
+     * are carried forward) and are linked to the same series_id.
+     *
+     * The weekly cadence continues from the last existing occurrence. Each new
+     * date is conflict- and blocked-checked (with row locking to avoid race
+     * conditions) and skipped + reported if unavailable. Capped at 52 new
+     * occurrences per call to prevent runaway series.
+     *
+     * @param string $series_id The SER-XXXXXX series reference.
+     * @param string $new_end   Target end date (Y-m-d) to extend up to.
+     * @return array|WP_Error  ['created' => int, 'skipped' => array of dates]
+     */
+    public static function extend_series( $series_id, $new_end ) {
+        global $wpdb;
+        $table = $wpdb->prefix . MBS_TABLE;
+
+        $bookings = self::get_series( $series_id );
+        if ( empty( $bookings ) ) {
+            return new WP_Error( 'no_series', 'Series not found.' );
+        }
+
+        // The template is the latest occurrence (get_series is ordered ASC).
+        $template = end( $bookings );
+        $last_ts  = strtotime( $template->booking_date );
+        $end_ts   = strtotime( sanitize_text_field( $new_end ) );
+
+        if ( ! $end_ts ) {
+            return new WP_Error( 'invalid_date', 'Invalid end date.' );
+        }
+
+        // First new occurrence is one week after the current last one.
+        $current = strtotime( '+1 week', $last_ts );
+        if ( $current > $end_ts ) {
+            return new WP_Error(
+                'no_extension',
+                'The series already runs to ' . wp_date( 'j M Y', $last_ts ) . '. Choose a later date.'
+            );
+        }
+
+        $all_day = (bool) $template->all_day;
+        $created = 0;
+        $skipped = array();
+        $max_occurrences = 52;
+        $count = 0;
+
+        for ( $d = $current; $d <= $end_ts && $count < $max_occurrences; $d = strtotime( '+1 week', $d ) ) {
+            $count++;
+            $date_str = wp_date( 'Y-m-d', $d );
+
+            // Transaction + row lock: prevent a TOCTOU race with a public booking.
+            $wpdb->query( 'START TRANSACTION' );
+            $wpdb->query( $wpdb->prepare(
+                "SELECT id FROM {$table} WHERE space = %s AND booking_date = %s AND status NOT IN ('cancelled','archived') FOR UPDATE",
+                $template->space, $date_str
+            ) );
+
+            $conflicts = self::check_conflicts(
+                $template->space,
+                $date_str,
+                $all_day ? null : $template->start_time,
+                $all_day ? null : $template->end_time,
+                $all_day
+            );
+            if ( ! empty( $conflicts ) || MBS_Blocked_Dates::is_blocked( $date_str, $template->space ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                $skipped[] = $date_str;
+                continue;
+            }
+
+            // Recalculate cost for this occurrence (scout-use stays free).
+            $amount = self::calculate_cost(
+                $template->space, $template->start_time, $template->end_time,
+                (bool) $template->kitchen, $all_day, 1, (bool) $template->scout_use
+            );
+
+            $ref = self::generate_ref();
+            $wpdb->insert( $table, array(
+                'ref'              => $ref,
+                'status'           => $template->status,
+                'name'             => $template->name,
+                'organisation'     => $template->organisation,
+                'email'            => $template->email,
+                'phone'            => $template->phone,
+                'address'          => $template->address,
+                'space'            => $template->space,
+                'kitchen'          => (int) $template->kitchen,
+                'booking_date'     => $date_str,
+                'booking_date_end' => $date_str,
+                'all_day'          => $all_day ? 1 : 0,
+                'scout_use'        => (int) $template->scout_use,
+                'start_time'       => $all_day ? null : $template->start_time,
+                'end_time'         => $all_day ? null : $template->end_time,
+                'attendees'        => (int) $template->attendees,
+                'purpose'          => $template->purpose,
+                'amount'           => $amount,
+                'amount_paid'      => 0,
+                'invoice_number'   => $template->scout_use ? '' : 'INV-' . $ref,
+                'series_id'        => $series_id,
+                'modification_token' => wp_generate_password( 32, false ),
+            ) );
+            $wpdb->query( 'COMMIT' );
+
+            // Keep Home Assistant in step for confirmed occurrences.
+            if ( $template->status === 'confirmed' ) {
+                $fresh = self::get( $ref );
+                if ( $fresh ) {
+                    MBS_HomeAssistant::notify( $fresh );
+                    $wpdb->update( $table, array( 'ha_notified' => 1 ), array( 'ref' => $ref ) );
+                }
+            }
+
+            $created++;
+        }
+
+        MBS_Audit_Log::log(
+            $series_id,
+            'series_extended',
+            'Extended series by ' . $created . ' booking(s) up to ' . wp_date( 'Y-m-d', min( $end_ts, $d ) )
+            . ( ! empty( $skipped ) ? '; skipped ' . count( $skipped ) . ' conflicting date(s)' : '' )
+            . ( $count >= $max_occurrences ? ' (52-week cap reached — run again to extend further)' : '' )
+        );
+
+        return array(
+            'created'     => $created,
+            'skipped'     => $skipped,
+            'cap_reached' => ( $count >= $max_occurrences && $d <= $end_ts ),
+        );
+    }
+
+    /**
      * Update admin notes for a booking.
      */
     public static function update_admin_notes( $ref, $notes ) {
