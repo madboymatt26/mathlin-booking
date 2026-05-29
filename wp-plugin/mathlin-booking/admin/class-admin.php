@@ -289,9 +289,11 @@ class MBS_Admin {
 
         global $wpdb;
         $table = $wpdb->prefix . MBS_TABLE;
-        $wpdb->update( $table, array( 'deposit_paid' => 0 ), array( 'ref' => $ref ) );
+        // H-3: Clear both deposit_paid AND amount_paid, otherwise a later online
+        // payment would treat the (cleared) deposit as still paid and only charge the balance.
+        $wpdb->update( $table, array( 'deposit_paid' => 0, 'amount_paid' => 0 ), array( 'ref' => $ref ) );
 
-        MBS_Audit_Log::log( $ref, 'status_changed', 'Admin reverted Deposit Paid to Confirmed. Deposit record cleared.' );
+        MBS_Audit_Log::log( $ref, 'status_changed', 'Admin reverted Deposit Paid to Confirmed. Deposit and amount-paid records cleared.' );
 
         wp_send_json_success( array( 'ref' => $ref, 'status' => 'confirmed' ) );
     }
@@ -390,15 +392,25 @@ class MBS_Admin {
         for ( $d = $first_day; $d <= $end; $d = strtotime( '+1 week', $d ) ) {
             $date_str = wp_date( 'Y-m-d', $d );
 
-            // Check for conflicts
+            // M-1: Wrap conflict check + insert in a transaction with row locking to
+            // prevent a TOCTOU race where a public booking lands between check and insert.
+            $wpdb->query( 'START TRANSACTION' );
+            $wpdb->query( $wpdb->prepare(
+                "SELECT id FROM {$table} WHERE space = %s AND booking_date = %s AND status NOT IN ('cancelled','archived') FOR UPDATE",
+                $space, $date_str
+            ) );
+
+            // Check for conflicts (now with lock held)
             $conflicts = MBS_Bookings::check_conflicts( $space, $date_str, $start_time, $end_time, false );
             if ( ! empty( $conflicts ) ) {
+                $wpdb->query( 'ROLLBACK' );
                 $skipped++;
                 continue;
             }
 
             // Check for blocked dates
             if ( MBS_Blocked_Dates::is_blocked( $date_str, $space ) ) {
+                $wpdb->query( 'ROLLBACK' );
                 $skipped++;
                 continue;
             }
@@ -428,6 +440,7 @@ class MBS_Admin {
                 'series_id'        => $series_id,
                 'modification_token' => wp_generate_password( 32, false ),
             ) );
+            $wpdb->query( 'COMMIT' );
             $created++;
         }
 
@@ -979,6 +992,8 @@ class MBS_Admin {
         $body .= '<div style="background:#fff;padding:32px;border:1px solid #e0d0f0;border-top:none;border-radius:0 0 8px 8px;">';
         $body .= '<h2 style="color:#7413DC;">Booking Updated</h2>';
         $body .= nl2br( esc_html( $body_text ) );
+
+        $time_str = ! empty( $booking->all_day ) ? 'All day' : ( $booking->start_time . ' – ' . $booking->end_time );
 
         $body .= '<table style="width:100%;border-collapse:collapse;margin:16px 0;">';
         $body .= '<tr><td style="padding:8px 12px;background:#f5f0ff;font-weight:600;width:35%;border-bottom:1px solid #e0d0f0;">Reference</td><td style="padding:8px 12px;border-bottom:1px solid #e0d0f0;">' . esc_html( $booking->ref ) . '</td></tr>';

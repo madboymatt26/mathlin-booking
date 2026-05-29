@@ -84,7 +84,10 @@ class MBS_Bookings {
     public static function requires_full_payment( $booking_date ) {
         $settings = self::get_deposit_settings();
         if ( ! $settings['enabled'] ) return true;
-        $days_until = ( strtotime( $booking_date ) - current_time( 'timestamp' ) ) / 86400;
+        // M-2: Use wp_date() for timezone-consistent "today" basis (BST/GMT safe),
+        // matching the rest of the codebase rather than server-UTC current_time('timestamp').
+        $today      = strtotime( wp_date( 'Y-m-d' ) );
+        $days_until = ( strtotime( $booking_date ) - $today ) / 86400;
         return $days_until <= $settings['balance_days'];
     }
 
@@ -576,7 +579,7 @@ class MBS_Bookings {
         $msgs = array();
         foreach ( $conflicts as $b ) {
             $time = $b->all_day ? 'all day' : ( $b->start_time . '–' . $b->end_time );
-            $msgs[] = $b->space . ' on ' . date( 'j M', strtotime( $b->booking_date ) ) . ' (' . $time . ') – ' . $b->name;
+            $msgs[] = $b->space . ' on ' . wp_date( 'j M', strtotime( $b->booking_date ) ) . ' (' . $time . ') – ' . $b->name;
         }
 
         return 'This booking conflicts with: ' . implode( '; ', $msgs ) . '. Please choose a different time or space.';

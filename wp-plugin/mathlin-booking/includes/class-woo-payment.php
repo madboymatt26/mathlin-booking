@@ -96,6 +96,11 @@ class MBS_Woo_Payment {
         // UX-002: Don't generate payment URLs for £0 bookings (scout use etc)
         if ( (float) $booking->amount <= 0 ) return '';
 
+        // H-2: Don't generate a pay link if there's no outstanding balance
+        // (fully paid, or overpaid/refund-due after a downward price change)
+        $balance = (float) $booking->amount - (float) ( $booking->amount_paid ?? 0 );
+        if ( $balance <= 0.01 ) return '';
+
         $product_id = self::get_payment_product_id();
         if ( ! $product_id ) return '';
 
