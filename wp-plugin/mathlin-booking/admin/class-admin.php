@@ -602,6 +602,7 @@ class MBS_Admin {
                 $tiers[ $key ] = array(
                     'label'      => $label,
                     'multiplier' => max( 0, $multiplier ),
+                    'bypass_access_gate' => ! empty( $tier_data['bypass_access_gate'] ),
                 );
             }
             if ( ! empty( $tiers ) ) {

@@ -367,12 +367,13 @@ class MBS_Woo_Payment {
             if ( $booking->status === 'paid' ) {
                 global $wpdb;
                 $table = $wpdb->prefix . MBS_TABLE;
-                $wpdb->update( $table, array( 'status' => 'confirmed' ), array( 'ref' => $ref ) );
+                // C-2: Reset access_sent so the (rotated) code is not considered "already issued".
+                $wpdb->update( $table, array( 'status' => 'confirmed', 'access_sent' => 0 ), array( 'ref' => $ref ) );
 
-                MBS_Audit_Log::log( $ref, 'status_changed', 'Reverted to Confirmed: WooCommerce Order #' . $order_id . ' was refunded.', 0 );
+                MBS_Audit_Log::log( $ref, 'status_changed', 'Reverted to Confirmed: WooCommerce Order #' . $order_id . ' was refunded. Access flag reset.', 0 );
 
                 $order->add_order_note(
-                    sprintf( 'Mathlin Booking %s reverted to Confirmed due to refund.', $ref )
+                    sprintf( 'Mathlin Booking %s reverted to Confirmed due to refund. Access code flag reset.', $ref )
                 );
             }
         }

@@ -308,8 +308,9 @@ jQuery(function ($) {
             var key        = $(this).find('.nms-tier-key').val().trim();
             var label      = $(this).find('.nms-tier-label').val().trim();
             var multiplier = $(this).find('.nms-tier-multiplier').val();
+            var bypass     = $(this).find('.nms-tier-bypass').is(':checked') ? 1 : 0;
             if (key && label) {
-                tiers.push({ key: key, label: label, multiplier: multiplier });
+                tiers.push({ key: key, label: label, multiplier: multiplier, bypass_access_gate: bypass });
             }
         });
 
@@ -397,6 +398,7 @@ jQuery(function ($) {
             '<td><input type="text" class="nms-tier-key" value="" style="width:120px;" placeholder="e.g. nonprofit"></td>' +
             '<td><input type="text" class="nms-tier-label" value="" style="width:180px;" placeholder="e.g. Non-Profit"></td>' +
             '<td><input type="number" class="nms-tier-multiplier" value="1.0" min="0" step="0.05" style="width:80px;"> ×</td>' +
+            '<td style="text-align:center;"><input type="checkbox" class="nms-tier-bypass"></td>' +
             '<td><button type="button" class="button nms-remove-tier">&times;</button></td>' +
             '</tr>';
         $('#nms-tiers-tbody').append(row);

@@ -46,10 +46,13 @@ class MBS_Access_Details {
         $target_date = wp_date( 'Y-m-d', strtotime( '+' . $settings['hours_before'] . ' hours' ) );
         $today       = wp_date( 'Y-m-d' );
 
+        // Fetch all upcoming, unsent, non-cancelled bookings in the window.
+        // We include 'confirmed' and 'deposit_paid' as CANDIDATES — the per-booking
+        // tier gate below decides whether each is actually eligible.
         $bookings = $wpdb->get_results( $wpdb->prepare(
             "SELECT * FROM {$table}
              WHERE booking_date BETWEEN %s AND %s
-             AND status IN ('paid', 'deposit_paid')
+             AND status IN ('paid', 'deposit_paid', 'confirmed')
              AND access_sent = 0
              ORDER BY booking_date ASC, start_time ASC",
             $today, $target_date
@@ -57,7 +60,12 @@ class MBS_Access_Details {
 
         if ( empty( $bookings ) ) return;
 
+        $sent_count = 0;
         foreach ( $bookings as $booking ) {
+            if ( ! self::is_eligible_for_access( $booking ) ) {
+                continue; // Not yet payment-cleared for this tier — skip (will re-check next run)
+            }
+
             self::send_to_booker( $booking );
             self::send_admin_notification( $booking );
 
@@ -67,10 +75,37 @@ class MBS_Access_Details {
                 array( 'id' => $booking->id )
             );
 
-            MBS_Audit_Log::log( $booking->ref, 'access_sent', 'Access details sent to booker and admin notification sent.' );
+            $tier = MBS_Bookings::get_booking_tier( $booking );
+            MBS_Audit_Log::log(
+                $booking->ref,
+                'access_sent',
+                'Access details sent (status: ' . $booking->status . ', tier: ' . $tier . ').'
+            );
+            $sent_count++;
         }
 
-        error_log( '[Mathlin Booking] Sent access details for ' . count( $bookings ) . ' booking(s).' );
+        if ( $sent_count > 0 ) {
+            error_log( '[Mathlin Booking] Sent access details for ' . $sent_count . ' booking(s).' );
+        }
+    }
+
+    /**
+     * Determine whether a booking is eligible to receive its access code now.
+     *
+     * - Trusted tiers (bypass_access_gate enabled, e.g. Council/Commercial PO):
+     *   eligible when status is confirmed, deposit_paid, or paid.
+     * - All other tiers (standard public):
+     *   strictly require status = 'paid' (100% settled).
+     */
+    public static function is_eligible_for_access( $booking ) {
+        $tier = MBS_Bookings::get_booking_tier( $booking );
+
+        if ( MBS_Bookings::tier_bypasses_access_gate( $tier ) ) {
+            return in_array( $booking->status, array( 'confirmed', 'deposit_paid', 'paid' ), true );
+        }
+
+        // Default: strict — must be fully paid
+        return $booking->status === 'paid';
     }
 
     /**

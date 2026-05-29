@@ -133,6 +133,30 @@ class MBS_Bookings {
         return 1.0;
     }
 
+    /**
+     * Resolve the pricing tier for a booking.
+     * Prefers the tier stored on the booking row, then the linked user's tier,
+     * then falls back to 'standard'.
+     */
+    public static function get_booking_tier( $booking ) {
+        if ( ! empty( $booking->pricing_tier ) ) {
+            return $booking->pricing_tier;
+        }
+        if ( ! empty( $booking->user_id ) ) {
+            return self::get_user_tier( (int) $booking->user_id );
+        }
+        return 'standard';
+    }
+
+    /**
+     * Whether a tier is allowed to receive access codes before full payment.
+     * Used for trusted B2B tiers (councils, commercial PO customers).
+     */
+    public static function tier_bypasses_access_gate( $tier = 'standard' ) {
+        $tiers = self::get_pricing_tiers();
+        return ! empty( $tiers[ $tier ]['bypass_access_gate'] );
+    }
+
     // ── Space Bundling ─────────────────────────────────────────────────────────
 
     /**
@@ -470,6 +494,9 @@ class MBS_Bookings {
         if ( $result !== false && $status === 'cancelled' ) {
             $booking = self::get( $ref );
             if ( $booking ) MBS_HomeAssistant::notify_cancelled( $booking );
+            // C-2: A cancelled booking must not retain an active access flag.
+            $wpdb->update( $table, array( 'access_sent' => 0 ), array( 'ref' => $ref ) );
+            MBS_Audit_Log::log( $ref, 'access_revoked', 'Access flag reset on cancellation. Consider rotating the keysafe code if already shared.' );
         }
 
         // Fire action when booking is marked as paid (for OSM integration etc.)
