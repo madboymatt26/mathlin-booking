@@ -4,7 +4,7 @@ A comprehensive WordPress venue booking and management plugin built for Needham 
 
 > **Note:** This plugin was previously named "Mathlin Booking System". As of v3.14.0 the product is branded **MGF Venue**. Internal identifiers (plugin folder/slug `mathlin-booking`, database tables `wp_mathlin_*`, option keys `mbs_*`, REST namespace `mathlin/v1`, shortcodes `[mathlin_*]`) are unchanged for backward compatibility.
 
-**Current Version:** 3.15.0  
+**Current Version:** 3.15.1  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -168,6 +168,10 @@ Base: `/wp-json/mathlin/v1/`
 ---
 
 ## Changelog
+
+### v3.15.1
+- **Fix:** the custom admin menu icon rendered at full size (WordPress doesn't constrain URL-based menu icons) — now clamped to 20×20 via a scoped `admin_head` style.
+- **New:** all MGF Venue admin page headings now show the compass brand mark (`assets/mgf-venue-mark.png`) in place of the generic ⚜ glyph, via the shared `MBS_Admin::brand_mark()` helper. Customer-facing surfaces are unaffected.
 
 ### v3.15.0
 - **Admin rebrand:** the WordPress admin menu and all admin page headings now read **MGF Venue** (was "Scout Bookings"), with a bundled compass menu icon (`assets/mgf-venue-icon.png`). MGF is the operator/product brand and appears in admin only.

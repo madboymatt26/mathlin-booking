@@ -100,7 +100,7 @@ foreach ( $by_day as $d ) {
 }
 ?>
 <div class="wrap mbs-admin">
-    <h1>&#9884; MGF Venue – Analytics</h1>
+    <h1><?php echo MBS_Admin::brand_mark(); ?>MGF Venue – Analytics</h1>
     <p class="nms-muted">Financial Year: <?php echo esc_html( $fy_label ); ?></p>
 
     <!-- Summary cards -->

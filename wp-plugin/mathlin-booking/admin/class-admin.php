@@ -6,6 +6,7 @@ class MBS_Admin {
     public function init() {
         add_action( 'admin_menu',            array( $this, 'add_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_action( 'admin_head',            array( $this, 'menu_icon_css' ) );
         add_action( 'wp_ajax_mbs_update_status',  array( $this, 'ajax_update_status' ) );
         add_action( 'wp_ajax_mbs_mark_refunded',  array( $this, 'ajax_mark_refunded' ) );
         add_action( 'wp_ajax_mbs_mark_deposit_paid', array( $this, 'ajax_mark_deposit_paid' ) );
@@ -92,6 +93,38 @@ class MBS_Admin {
         }
         add_submenu_page( 'mathlin-booking', 'Change Requests', $requests_label, $booking_cap, 'mathlin-requests', array( $this, 'render_requests' ) );
         add_submenu_page( 'mathlin-booking', 'Audit Log', 'Audit Log', $booking_cap, 'mathlin-audit-log', array( $this, 'render_audit_log' ) );
+    }
+
+    /**
+     * Constrain the custom top-level menu icon.
+     *
+     * WordPress renders a URL-based menu icon as an unconstrained <img>, so a
+     * high-res source would otherwise display at full size in the admin sidebar.
+     * This runs on admin_head (every admin page) because the menu is global.
+     */
+    public function menu_icon_css() {
+        echo '<style>
+            #adminmenu #toplevel_page_mathlin-booking .wp-menu-image img {
+                width: 20px;
+                height: 20px;
+                object-fit: contain;
+                padding: 7px 0 0 !important;
+                opacity: 0.85;
+            }
+            #adminmenu #toplevel_page_mathlin-booking:hover .wp-menu-image img,
+            #adminmenu #toplevel_page_mathlin-booking.current .wp-menu-image img {
+                opacity: 1;
+            }
+        </style>';
+    }
+
+    /**
+     * Return an <img> tag for the MGF Venue compass mark, sized for an admin
+     * page <h1>. Centralised so all admin headings stay consistent.
+     */
+    public static function brand_mark() {
+        return '<img src="' . esc_url( MBS_PLUGIN_URL . 'assets/mgf-venue-mark.png' ) . '" alt="MGF Venue" '
+             . 'style="height:1.1em;width:auto;vertical-align:-0.18em;margin-right:6px;">';
     }
 
     // ── Assets ─────────────────────────────────────────────────────────────────

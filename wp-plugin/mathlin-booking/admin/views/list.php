@@ -1,6 +1,6 @@
 <?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <div class="wrap mbs-admin">
-    <h1 class="wp-heading-inline">&#9884; MGF Venue</h1>
+    <h1 class="wp-heading-inline"><?php echo MBS_Admin::brand_mark(); ?>MGF Venue</h1>
     <hr class="wp-header-end">
 
     <!-- Stats -->

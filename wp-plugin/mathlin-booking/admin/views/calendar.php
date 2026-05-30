@@ -48,7 +48,7 @@ $selected_bookings = $selected_date && isset( $by_date[ $selected_date ] ) ? $by
 $selected_blocks   = $selected_date && isset( $blocked_dates[ $selected_date ] ) ? $blocked_dates[ $selected_date ] : array();
 ?>
 <div class="wrap mbs-admin">
-    <h1 class="wp-heading-inline">&#9884; MGF Venue – Calendar</h1>
+    <h1 class="wp-heading-inline"><?php echo MBS_Admin::brand_mark(); ?>MGF Venue – Calendar</h1>
     <hr class="wp-header-end">
 
     <div class="nms-calendar-layout">
