@@ -298,7 +298,7 @@ class MBS_Woo_Payment {
                     $table = $wpdb->prefix . MBS_TABLE;
                     $wpdb->update( $table, array( 'deposit_paid' => $order_total, 'amount_paid' => $order_total ), array( 'ref' => $ref ) );
                     MBS_Audit_Log::log( $ref, 'deposit_paid', 'Deposit of £' . number_format( $order_total, 2 ) . ' received via WooCommerce Order #' . $order_id . '.', 0 );
-                    $order->add_order_note( sprintf( 'Mathlin Booking %s: Deposit of £%s received. Balance of £%s due before event.', $ref, number_format( $order_total, 2 ), number_format( $booking_total - $order_total, 2 ) ) );
+                    $order->add_order_note( sprintf( 'MGF Venue booking %s: Deposit of £%s received. Balance of £%s due before event.', $ref, number_format( $order_total, 2 ), number_format( $booking_total - $order_total, 2 ) ) );
 
                     // Send deposit received confirmation email
                     $updated_booking = MBS_Bookings::get( $ref );
@@ -317,7 +317,7 @@ class MBS_Woo_Payment {
                     ), array( 'ref' => $ref ) );
                     MBS_Audit_Log::log( $ref, 'paid', 'Payment received via WooCommerce Order #' . $order_id . '. Status updated to Paid.', 0 );
                     MBS_Email::notify_paid( $booking );
-                    $order->add_order_note( sprintf( 'Mathlin Booking %s automatically marked as Paid.', $ref ) );
+                    $order->add_order_note( sprintf( 'MGF Venue booking %s automatically marked as Paid.', $ref ) );
                 }
 
                 // Store order ID on the booking for cross-reference
@@ -378,7 +378,7 @@ class MBS_Woo_Payment {
                 MBS_Audit_Log::log( $ref, 'status_changed', 'Reverted to Confirmed: WooCommerce Order #' . $order_id . ' was refunded. Access flag reset.', 0 );
 
                 $order->add_order_note(
-                    sprintf( 'Mathlin Booking %s reverted to Confirmed due to refund. Access code flag reset.', $ref )
+                    sprintf( 'MGF Venue booking %s reverted to Confirmed due to refund. Access code flag reset.', $ref )
                 );
             }
         }

@@ -1,6 +1,6 @@
 <?php
 /**
- * GitHub-based self-updater for the Mathlin Booking plugin.
+ * GitHub-based self-updater for the MGF Venue plugin.
  *
  * Hooks into WordPress's native update system so that new GitHub releases
  * appear in Dashboard → Updates just like any plugin from wordpress.org.

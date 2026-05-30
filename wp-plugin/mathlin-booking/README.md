@@ -4,7 +4,7 @@ A comprehensive WordPress venue booking and management plugin built for Needham 
 
 > **Note:** This plugin was previously named "Mathlin Booking System". As of v3.14.0 the product is branded **MGF Venue**. Internal identifiers (plugin folder/slug `mathlin-booking`, database tables `wp_mathlin_*`, option keys `mbs_*`, REST namespace `mathlin/v1`, shortcodes `[mathlin_*]`) are unchanged for backward compatibility.
 
-**Current Version:** 3.14.0  
+**Current Version:** 3.14.1  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -168,6 +168,9 @@ Base: `/wp-json/mathlin/v1/`
 ---
 
 ## Changelog
+
+### v3.14.1
+- **Rebrand (Phase 1 follow-up):** caught brand strings missed in v3.14.0 — three customer-facing WooCommerce order notes (deposit received / marked paid / reverted on refund) now read "MGF Venue booking", and the updater file docblock. No internal identifiers changed.
 
 ### v3.14.0
 - **Rebrand (Phase 1 — cosmetic):** product renamed from "Mathlin Booking System" to **MGF Venue**. Updated the plugin name/description header, user-profile section heading, WordPress privacy (GDPR) exporter/eraser labels, the updater "View details" name/description, iCal `PRODID`, REST API docblock, and developer log prefixes (`[MGF Venue]`). No internal identifiers changed (plugin slug, DB tables, option keys, cron hooks, AJAX actions, REST namespace, shortcodes, capability) — so existing data, integrations, and the auto-updater are unaffected.
