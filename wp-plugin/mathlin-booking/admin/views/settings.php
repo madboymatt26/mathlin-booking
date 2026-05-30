@@ -111,7 +111,7 @@
             <div class="nms-card-header">
                 <h2>💳 Payment &amp; Invoice Settings</h2>
             </div>
-            <p>Configure the bank details and payment terms shown on invoices and confirmation emails.</p>
+            <p>Configure the bank details and payment terms shown on invoices and confirmation emails. These bank details are also used automatically for B2B / offline-invoicing hirers (see <em>Purchase Order / Offline Notes</em> under Venue &amp; Legal).</p>
             <table class="form-table">
                 <tr>
                     <th><label for="bank_sort_code">Sort Code</label></th>
@@ -290,7 +290,7 @@ rest:
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="offline_payment_instructions">BACS / Offline Payment Instructions</label></th>
+                    <th><label for="offline_payment_instructions">Purchase Order / Offline Notes <span style="font-weight:normal;color:#777;">(optional)</span></label></th>
                     <td>
                         <?php
                         wp_editor(
@@ -298,16 +298,17 @@ rest:
                             'offline_payment_instructions',
                             array(
                                 'textarea_name' => 'offline_payment_instructions',
-                                'textarea_rows' => 8,
+                                'textarea_rows' => 6,
                                 'media_buttons' => false,
                                 'teeny'         => true,
                             )
                         );
                         ?>
                         <p class="description" style="margin-top:8px;">
-                            Bank transfer (BACS) and Purchase Order instructions for B2B hirers (councils, businesses). Shown in emails instead of the "Pay Now" card button for tiers with <strong>Offline Invoicing</strong> enabled.<br>
-                            Supports placeholders: <code>{invoice}</code> (invoice number), <code>{ref}</code> (booking reference), <code>{amount}</code> (balance due).<br>
-                            Example: <em>Please pay by BACS to Sort Code 00-00-00, Account 12345678, quoting reference {invoice}. Purchase orders can be emailed to accounts@example.com.</em>
+                            Shown to B2B hirers (councils, businesses) on tiers with <strong>Offline Invoicing</strong> enabled, instead of the "Pay Now" card button.<br>
+                            <strong>You don't need to repeat your bank details here</strong> — the Sort Code, Account Number and Account Name from <em>Payment &amp; Invoice Settings</em> above are added automatically, along with the payment reference. Use this box only for <em>extra</em> instructions, e.g. where to email purchase orders.<br>
+                            Supports placeholders: <code>{invoice}</code>, <code>{ref}</code>, <code>{amount}</code>.<br>
+                            Example: <em>Purchase orders can be emailed to accounts@example.com quoting reference {invoice}.</em>
                         </p>
                     </td>
                 </tr>

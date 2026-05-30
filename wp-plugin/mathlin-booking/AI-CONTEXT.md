@@ -35,7 +35,7 @@ All prefixed `mbs_`. Key ones:
 - `mbs_pricing_tiers` (JSON) — tier definitions: `{key: {label, multiplier, bypass_access_gate, offline_invoicing}}`
 - `mbs_venue_capacity`, `mbs_curfew_saturday`, `mbs_curfew_sunday`
 - `mbs_booking_notice`, `mbs_facilities_text`, `mbs_terms_text`
-- `mbs_offline_payment_instructions` — BACS/PO instructions for offline (B2B) tiers; supports `{invoice}`/`{ref}`/`{amount}`
+- `mbs_offline_payment_instructions` — *optional* PO/offline notes for B2B tiers (extras only; bank details are pulled automatically from `mbs_bank_*`). Supports `{invoice}`/`{ref}`/`{amount}`
 - `mbs_access_enabled`, `mbs_access_code`, `mbs_access_instructions`, `mbs_access_hours_before`, `mbs_access_health_safety`
 - `mbs_feedback_enabled`, `mbs_feedback_review_url`, `mbs_feedback_subject`, `mbs_feedback_body`, `mbs_feedback_distribution_email` — post-booking feedback module
 - `mbs_auto_chase_enabled`, `mbs_auto_archive_days`, `mbs_reminder_hours`
@@ -227,7 +227,7 @@ The payment chaser queries `deposit_paid` bookings where `booking_date <= today 
 
 ### Per-tier flags
 - `bypass_access_gate` — trusted tiers receive their keysafe code once *confirmed/deposit_paid/paid* rather than strictly *paid* (see Access Details)
-- `offline_invoicing` — B2B (BACS/PO) tiers: suppresses all WooCommerce "Pay Now" buttons, injects `mbs_offline_payment_instructions` into emails, and routes the payment chaser to a gentle statement reminder instead of the escalating chase. Helpers: `MBS_Bookings::tier_is_offline()` / `booking_is_offline()`.
+- `offline_invoicing` — B2B (BACS/PO) tiers: suppresses all WooCommerce "Pay Now" buttons, and `MBS_Email::offline_payment_block()` injects the structured bank details (`mbs_bank_*` from Payment & Invoice Settings) plus the payment reference and any optional `mbs_offline_payment_instructions` notes; routes the payment chaser to a gentle statement reminder instead of the escalating chase. Helpers: `MBS_Bookings::tier_is_offline()` / `booking_is_offline()`.
 
 ### Resolution Order
 1. Check for tier-specific rate on the space (e.g. `rate_hourly_community`)

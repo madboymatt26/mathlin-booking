@@ -4,7 +4,7 @@ A comprehensive WordPress venue booking and management plugin built for Needham 
 
 > **Note:** This plugin was previously named "Mathlin Booking System". As of v3.14.0 the product is branded **MGF Venue**. Internal identifiers (plugin folder/slug `mathlin-booking`, database tables `wp_mathlin_*`, option keys `mbs_*`, REST namespace `mathlin/v1`, shortcodes `[mathlin_*]`) are unchanged for backward compatibility.
 
-**Current Version:** 3.15.3  
+**Current Version:** 3.16.0  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -168,6 +168,10 @@ Base: `/wp-json/mathlin/v1/`
 ---
 
 ## Changelog
+
+### v3.16.0
+- **New analytics:** financial overview (Collected + collection rate, Outstanding debtors + overdue count, Deposits held, Kitchen income est., Avg lead time), demand/pipeline cards (upcoming 30/90 days, avg attendees, repeat-hirer rate, cancellation rate), YoY revenue badge, and new charts — Billed vs Collected vs Outstanding, Revenue by Pricing Tier, Bookings by Time of Day — plus Top Hirers and Conversion/Cancellation tables (public vs private, revenue lost). All commercial metrics exclude Scout bookings; occupancy still includes them.
+- **Settings:** removed the bank-details duplication — `offline_payment_block()` now auto-injects the structured Sort Code / Account Number / Account Name (and payment reference) from *Payment & Invoice Settings* into B2B/offline emails. The old "BACS / Offline Payment Instructions" box is now "Purchase Order / Offline Notes (optional)" for PO-specific extras only.
 
 ### v3.15.3
 - **Fix:** the Analytics page included internal Scout bookings in its commercial metrics. All revenue, booking counts, by-space, by-day and payment-status queries now exclude `scout_use = 0`, matching the dashboard/booking-list behaviour. **Space occupancy/utilisation deliberately still includes Scout bookings**, since they physically occupy the hall.

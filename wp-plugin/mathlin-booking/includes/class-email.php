@@ -427,24 +427,46 @@ class MBS_Email {
      */
     public static function offline_payment_block( $booking, $amount_due = null ) {
         $instructions = get_option( 'mbs_offline_payment_instructions', '' );
+        $bank         = MBS_Bookings::get_bank_details();
 
         if ( $amount_due === null ) {
             $amount_due = (float) $booking->amount - (float) ( $booking->amount_paid ?? 0 );
         }
 
+        $reference = $booking->invoice_number ?: $booking->ref;
+
         $body  = '<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:16px;margin:16px 0;">';
         $body .= '<strong style="color:#3730a3;">💼 Payment by Invoice (BACS / Purchase Order)</strong><br>';
         if ( $amount_due > 0.01 ) {
-            $body .= '<p style="margin:8px 0 0;">Amount due: <strong>&pound;' . number_format( $amount_due, 2 ) . '</strong> &bull; Reference: <strong>' . esc_html( $booking->invoice_number ?: $booking->ref ) . '</strong></p>';
+            $body .= '<p style="margin:8px 0 0;">Amount due: <strong>&pound;' . number_format( $amount_due, 2 ) . '</strong> &bull; Reference: <strong>' . esc_html( $reference ) . '</strong></p>';
         }
+
+        // Structured bank details pulled automatically from Payment & Invoice
+        // Settings — the operator never re-types them in the instructions box.
+        if ( ! empty( $bank['sort_code'] ) || ! empty( $bank['account_number'] ) ) {
+            $body .= '<table style="margin-top:10px;font-size:14px;color:#3730a3;border-collapse:collapse;">';
+            if ( ! empty( $bank['account_name'] ) ) {
+                $body .= '<tr><td style="padding:2px 12px 2px 0;">Account name</td><td style="padding:2px 0;"><strong>' . esc_html( $bank['account_name'] ) . '</strong></td></tr>';
+            }
+            if ( ! empty( $bank['sort_code'] ) ) {
+                $body .= '<tr><td style="padding:2px 12px 2px 0;">Sort code</td><td style="padding:2px 0;"><strong>' . esc_html( $bank['sort_code'] ) . '</strong></td></tr>';
+            }
+            if ( ! empty( $bank['account_number'] ) ) {
+                $body .= '<tr><td style="padding:2px 12px 2px 0;">Account number</td><td style="padding:2px 0;"><strong>' . esc_html( $bank['account_number'] ) . '</strong></td></tr>';
+            }
+            $body .= '<tr><td style="padding:2px 12px 2px 0;">Payment reference</td><td style="padding:2px 0;"><strong>' . esc_html( $reference ) . '</strong></td></tr>';
+            $body .= '</table>';
+        }
+
+        // Supplementary PO / offline instructions (no need to repeat bank details here)
         if ( ! empty( $instructions ) ) {
             // Allow {invoice}, {ref}, {amount} placeholders in the instructions
             $instructions = str_replace(
                 array( '{invoice}', '{ref}', '{amount}' ),
-                array( $booking->invoice_number ?: $booking->ref, $booking->ref, number_format( $amount_due, 2 ) ),
+                array( $reference, $booking->ref, number_format( $amount_due, 2 ) ),
                 $instructions
             );
-            $body .= '<div style="margin-top:8px;font-size:14px;color:#3730a3;">' . wp_kses_post( wpautop( $instructions ) ) . '</div>';
+            $body .= '<div style="margin-top:10px;font-size:14px;color:#3730a3;">' . wp_kses_post( wpautop( $instructions ) ) . '</div>';
         }
         $body .= '</div>';
 
