@@ -152,7 +152,10 @@ class MBS_Updater {
                 'new_version' => $remote_version,
                 'url'         => $release['html_url'],
                 'package'     => $download_url,
-                'icons'       => array(),
+                'icons'       => array(
+                    '1x'      => MBS_PLUGIN_URL . 'assets/plugin-icon-128x128.png',
+                    '2x'      => MBS_PLUGIN_URL . 'assets/plugin-icon-256x256.png',
+                ),
                 'banners'     => array(),
                 'tested'      => '7.0',
                 'requires'    => '5.0',
@@ -197,6 +200,10 @@ class MBS_Updater {
                 'changelog'    => nl2br( esc_html( $release['body'] ?? 'No changelog provided.' ) ),
             ),
             'download_link'   => $this->get_download_url( $release ),
+            'icons'           => array(
+                '1x' => MBS_PLUGIN_URL . 'assets/plugin-icon-128x128.png',
+                '2x' => MBS_PLUGIN_URL . 'assets/plugin-icon-256x256.png',
+            ),
         );
 
         return $info;
