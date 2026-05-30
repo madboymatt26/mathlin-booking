@@ -18,30 +18,30 @@ if ( $month >= 4 ) {
     $fy_label = ( $year - 1 ) . '/' . $year;
 }
 
-// Bookings per month (last 12 months)
+// Bookings per month (last 12 months) — exclude internal Scout bookings
 $monthly = $wpdb->get_results(
     "SELECT DATE_FORMAT(booking_date, '%Y-%m') as month, COUNT(*) as count, SUM(amount) as revenue
-     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
      GROUP BY month ORDER BY month ASC"
 );
 
-// Bookings by space
+// Bookings by space — exclude internal Scout bookings
 $by_space = $wpdb->get_results(
     "SELECT space, COUNT(*) as count, SUM(amount) as revenue
-     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date BETWEEN '{$fy_start}' AND '{$fy_end}'
+     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date BETWEEN '{$fy_start}' AND '{$fy_end}'
      GROUP BY space ORDER BY count DESC"
 );
 
-// Bookings by day of week
+// Bookings by day of week — exclude internal Scout bookings
 $by_day = $wpdb->get_results(
     "SELECT DAYNAME(booking_date) as day_name, DAYOFWEEK(booking_date) as day_num, COUNT(*) as count
-     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date BETWEEN '{$fy_start}' AND '{$fy_end}'
+     FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date BETWEEN '{$fy_start}' AND '{$fy_end}'
      GROUP BY day_name, day_num ORDER BY day_num ASC"
 );
 
-// Revenue this FY vs last FY
+// Revenue this FY vs last FY — exclude internal Scout bookings
 $revenue_fy = (float) $wpdb->get_var( $wpdb->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date BETWEEN %s AND %s",
+    "SELECT COALESCE(SUM(amount), 0) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date BETWEEN %s AND %s",
     $fy_start, $fy_end
 ) );
 
@@ -53,22 +53,22 @@ if ( $month >= 4 ) {
     $prev_fy_end   = ( $year - 1 ) . '-03-31';
 }
 $revenue_prev = (float) $wpdb->get_var( $wpdb->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date BETWEEN %s AND %s",
+    "SELECT COALESCE(SUM(amount), 0) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date BETWEEN %s AND %s",
     $prev_fy_start, $prev_fy_end
 ) );
 
-// Total bookings this FY
+// Total bookings this FY — exclude internal Scout bookings
 $total_fy = (int) $wpdb->get_var( $wpdb->prepare(
-    "SELECT COUNT(*) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND booking_date BETWEEN %s AND %s",
+    "SELECT COUNT(*) FROM {$table} WHERE status IN ('confirmed', 'deposit_paid', 'paid') AND scout_use = 0 AND booking_date BETWEEN %s AND %s",
     $fy_start, $fy_end
 ) );
 
 // Average booking value
 $avg_value = $total_fy > 0 ? $revenue_fy / $total_fy : 0;
 
-// Payment status breakdown
-$paid_count     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = 'paid' AND booking_date BETWEEN %s AND %s", $fy_start, $fy_end ) );
-$unpaid_count   = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = 'confirmed' AND booking_date BETWEEN %s AND %s", $fy_start, $fy_end ) );
+// Payment status breakdown — exclude internal Scout bookings
+$paid_count     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = 'paid' AND scout_use = 0 AND booking_date BETWEEN %s AND %s", $fy_start, $fy_end ) );
+$unpaid_count   = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = 'confirmed' AND scout_use = 0 AND booking_date BETWEEN %s AND %s", $fy_start, $fy_end ) );
 
 // Email queue stats
 $email_stats = MBS_Email_Queue::get_stats();
@@ -214,6 +214,9 @@ foreach ( $by_day as $d ) {
 
     $occupancy_data = array();
     foreach ( MBS_Bookings::get_spaces() as $space_name => $space_info ) {
+        // NOTE: occupancy/utilisation intentionally INCLUDES Scout bookings —
+        // they physically occupy the hall even though they're £0 and excluded
+        // from the commercial revenue/count metrics above. Do not add scout_use = 0 here.
         $booked_hours = (float) $wpdb->get_var( $wpdb->prepare(
             "SELECT COALESCE(SUM(
                 CASE
