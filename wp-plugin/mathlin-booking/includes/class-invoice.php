@@ -46,7 +46,11 @@ class MBS_Invoice {
         <div class="mbs-invoice" id="mbs-invoice-print">
             <div class="nms-inv-header">
                 <div class="nms-inv-org">
+                    <?php if ( ! empty( $org['logo_url'] ) ) : ?>
+                    <div class="nms-inv-logo"><img src="<?php echo esc_url( $org['logo_url'] ); ?>" alt="<?php echo esc_attr( $org_name ); ?>" style="max-height:60px;max-width:200px;height:auto;"></div>
+                    <?php else : ?>
                     <div class="nms-inv-logo">&#9884;</div>
+                    <?php endif; ?>
                     <h2><?php echo esc_html( $org_name ); ?></h2>
                     <p><?php echo esc_html( $org_address ); ?><br>
                     <?php echo esc_html( $admin_email ); ?><?php if ( $org_phone ) : ?> &bull; <?php echo esc_html( $org_phone ); ?><?php endif; ?>
@@ -216,7 +220,12 @@ class MBS_Invoice {
 <body>
     <div class="inv-header">
         <div class="inv-org">
+            <?php if ( ! empty( $org['logo_url'] ) ) : ?>
+            <img src="<?php echo esc_url( $org['logo_url'] ); ?>" alt="<?php echo esc_attr( $org_name ); ?>" style="max-height:60px;max-width:200px;height:auto;margin-bottom:8px;"><br>
+            <h2 style="margin-top:4px;"><?php echo esc_html( $org_name ); ?></h2>
+            <?php else : ?>
             <h2>&#9884; <?php echo esc_html( $org_name ); ?></h2>
+            <?php endif; ?>
             <p><?php echo esc_html( $org_address ); ?><br>
             <?php echo esc_html( $admin_email ); ?><?php if ( $org_phone ) : ?> &bull; <?php echo esc_html( $org_phone ); ?><?php endif; ?>
             <?php if ( $org_charity ) : ?><br>Registered Charity No. <?php echo esc_html( $org_charity ); ?><?php endif; ?></p>

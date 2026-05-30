@@ -6,7 +6,7 @@
  * appear in Dashboard → Updates just like any plugin from wordpress.org.
  *
  * Usage:
- *   1. Store a GitHub Personal Access Token in wp-admin → Scout Bookings → Settings.
+ *   1. Store a GitHub Personal Access Token in wp-admin → MGF Venue → Settings.
  *   2. When you're ready to release, create a GitHub Release with a tag like "1.0.1"
  *      and attach a zip of the plugin folder (or let GitHub auto-generate the source zip).
  *   3. WordPress will detect the new version and offer a one-click update.

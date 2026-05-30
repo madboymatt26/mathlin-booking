@@ -4,7 +4,7 @@ $org       = MBS_Email_Templates::get_org_settings();
 $chase     = MBS_Email_Templates::get_chase_settings();
 ?>
 <div class="wrap mbs-admin">
-    <h1>&#9884; Scout Bookings – Email Settings</h1>
+    <h1>&#9884; MGF Venue – Email Settings</h1>
 
     <div class="nms-settings-layout">
 

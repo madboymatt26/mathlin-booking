@@ -4,7 +4,7 @@ $all      = MBS_Modification::get_all_requests( 100 );
 $resolved = array_filter( $all, function( $r ) { return $r->status !== 'pending'; } );
 ?>
 <div class="wrap mbs-admin">
-    <h1>&#9884; Scout Bookings – Change Requests
+    <h1>&#9884; MGF Venue – Change Requests
         <?php if ( count( $pending ) > 0 ) : ?>
             <span class="nms-status nms-status-pending" style="font-size:0.8rem;vertical-align:middle;margin-left:8px;"><?php echo count( $pending ); ?> pending</span>
         <?php endif; ?>

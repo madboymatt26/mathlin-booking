@@ -4,7 +4,7 @@ $active  = array_filter( $blocked, function( $b ) use ( $today ) { return $b->da
 $expired = array_filter( $blocked, function( $b ) use ( $today ) { return $b->date_to < $today; } );
 ?>
 <div class="wrap mbs-admin">
-    <h1 class="wp-heading-inline">&#9884; Scout Bookings – Blocked Dates</h1>
+    <h1 class="wp-heading-inline">&#9884; MGF Venue – Blocked Dates</h1>
     <hr class="wp-header-end">
 
     <p>Block dates to prevent bookings. You can block all spaces or specific ones. Blocked dates will show as unavailable on the public booking calendar.</p>

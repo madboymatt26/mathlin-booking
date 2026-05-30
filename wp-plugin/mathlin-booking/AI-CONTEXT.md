@@ -3,6 +3,10 @@
 This document is designed for LLMs and AI agents to read before modifying this codebase. It maps the architecture, file relationships, and critical business logic rules.
 
 > **Branding note:** the product is named **MGF Venue** (renamed from "Mathlin Booking System" in v3.14.0, Phase 1 cosmetic rebrand). All internal identifiers were intentionally left on their original prefixes for backward compatibility: plugin slug/folder `mathlin-booking`, DB tables `wp_mathlin_*`, option keys `mbs_*`, cron hooks `mbs_daily_*`, AJAX actions `mbs_*`, REST namespace `mathlin/v1`, shortcodes `[mathlin_*]`, capability `mbs_manage_bookings`, PHP class prefix `MBS_`, CSS prefix `nms-`.
+>
+> **CRITICAL — two distinct brands (do not mix):**
+> - **MGF Venue** = operator/product brand. Admin-only: WP admin menu + icon (`assets/mgf-venue-icon.png`), admin page `<h1>`s, Plugins list, updater, GDPR labels, developer `error_log` prefixes. Bundled logo assets live in `wp-plugin/mathlin-booking/assets/`.
+> - **Scout Group** = customer-facing brand. Everything a hirer sees (emails, invoices, public shortcode pages) must use the **configurable** Organisation Name (`mbs_org_name`) and uploaded logo (`mbs_org_logo_url`) via `MBS_Email_Templates::get_logo_html()` / `get_org_settings()`. **Never** surface the MGF brand or the bundled MGF assets to customers.
 
 ---
 

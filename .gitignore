@@ -6,6 +6,9 @@ Thumbs.db
 .vscode/settings.json
 *.swp
 
+# Python venv for the marketing PDF/logo build scripts
+.pdfvenv/
+
 # Secrets — never commit these
 *.env
 secrets.php

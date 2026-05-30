@@ -1,6 +1,6 @@
 <?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
 <div class="wrap mbs-admin">
-    <h1>&#9884; Scout Bookings – Settings</h1>
+    <h1>&#9884; MGF Venue – Settings</h1>
 
     <div id="nms-settings-global-msg" class="nms-settings-msg" style="margin-bottom:16px;font-size:14px;"></div>
 

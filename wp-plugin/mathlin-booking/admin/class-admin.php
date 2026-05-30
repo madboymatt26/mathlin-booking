@@ -53,19 +53,22 @@ class MBS_Admin {
             $bookings_label .= ' <span class="awaiting-mod count-' . $pending_bookings . '"><span class="pending-count">' . $pending_bookings . '</span></span>';
         }
 
-        // Parent menu — show pending bookings count in the top-level menu item
-        $menu_label = 'Scout Bookings';
+        // Parent menu — show pending bookings count in the top-level menu item.
+        // "MGF Venue" is the operator/product brand (admin-only). Customer-facing
+        // surfaces (emails, invoices, public pages) use the configurable Scout
+        // Group org name + logo instead — never the MGF brand.
+        $menu_label = 'MGF Venue';
         if ( $pending_bookings > 0 ) {
             $menu_label .= ' <span class="update-plugins count-' . $pending_bookings . '"><span class="plugin-count">' . $pending_bookings . '</span></span>';
         }
 
         add_menu_page(
-            'Scout Bookings',
+            'MGF Venue',
             $menu_label,
             $booking_cap,
             'mathlin-booking',
             array( $this, 'render_dashboard' ),
-            'dashicons-calendar-alt',
+            MBS_PLUGIN_URL . 'assets/mgf-venue-icon.png',
             30
         );
         add_submenu_page( 'mathlin-booking', 'All Bookings', $bookings_label, $booking_cap, 'mathlin-booking', array( $this, 'render_dashboard' ) );

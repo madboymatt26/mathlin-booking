@@ -2,7 +2,7 @@
 $fields = MBS_Custom_Fields::get_fields();
 ?>
 <div class="wrap mbs-admin">
-    <h1>&#9884; Scout Bookings – Custom Fields</h1>
+    <h1>&#9884; MGF Venue – Custom Fields</h1>
     <p>Add custom questions to the booking form. These appear in an "Additional Information" section below the standard booking fields.</p>
 
     <div class="nms-card">

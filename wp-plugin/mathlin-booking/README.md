@@ -4,7 +4,7 @@ A comprehensive WordPress venue booking and management plugin built for Needham 
 
 > **Note:** This plugin was previously named "Mathlin Booking System". As of v3.14.0 the product is branded **MGF Venue**. Internal identifiers (plugin folder/slug `mathlin-booking`, database tables `wp_mathlin_*`, option keys `mbs_*`, REST namespace `mathlin/v1`, shortcodes `[mathlin_*]`) are unchanged for backward compatibility.
 
-**Current Version:** 3.14.1  
+**Current Version:** 3.15.0  
 **Requires WordPress:** 5.0+  
 **Requires PHP:** 7.4+  
 **Tested with WordPress:** 6.7  
@@ -168,6 +168,11 @@ Base: `/wp-json/mathlin/v1/`
 ---
 
 ## Changelog
+
+### v3.15.0
+- **Admin rebrand:** the WordPress admin menu and all admin page headings now read **MGF Venue** (was "Scout Bookings"), with a bundled compass menu icon (`assets/mgf-venue-icon.png`). MGF is the operator/product brand and appears in admin only.
+- **Customer-facing stays Scout-branded:** emails, invoices, and public pages continue to use the configurable Organisation Name + uploaded logo (`mbs_org_name` / `mbs_org_logo_url`) — never the MGF brand. Invoices (admin view + emailed copy) now render the uploaded org logo when set, falling back to the ⚜ glyph.
+- **New assets:** `assets/mgf-venue-logo.png` / `.webp` (full logo), `assets/mgf-venue-icon.png` (menu), `assets/mgf-venue-mark.png` (square mark). Cropped from the brand artwork to the compass + "MGF" only (drops "MGF Fund" / "MGF Manage" — future projects), background removed to transparency.
 
 ### v3.14.1
 - **Rebrand (Phase 1 follow-up):** caught brand strings missed in v3.14.0 — three customer-facing WooCommerce order notes (deposit received / marked paid / reverted on refund) now read "MGF Venue booking", and the updater file docblock. No internal identifiers changed.
